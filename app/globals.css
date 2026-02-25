@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font: 'Poppins', sans-serif;
+  /* Light palette - clean, not blinding */
+  --bg:           #f0f4f8;
+  --bg-page:      #eef2f7;
+  --surface:      #ffffff;
+  --surface-soft: #f7f9fc;
+  --border:       #dde3ec;
+  --border-soft:  #e8edf4;
+  --text-1:       #1a2332;
+  --text-2:       #3d4f63;
+  --text-3:       #6b7e96;
+  --text-4:       #9aaabb;
+  --accent:       #4f6ef7;
+  --accent-soft:  #eef1fe;
+  --accent-hover: #3d5ce6;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--font);
+  background-color: var(--bg-page);
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--border-soft); }
+::-webkit-scrollbar-thumb { background: #c8d3e0; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #aab8cc; }
+
+/* ─── Card / Panel ─── */
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 6px rgba(30, 50, 80, 0.06), 0 4px 20px rgba(30, 50, 80, 0.04);
+}
+
+.glass-light {
+  background: var(--surface-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.75rem;
+}
+
+.glow-indigo {
+  box-shadow: 0 0 0 1px rgba(79, 110, 247, 0.12), 0 4px 24px rgba(79, 110, 247, 0.08);
+}
+
+/* ─── Input ─── */
+.input-field {
+  width: 100%;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-family: var(--font);
+  color: var(--text-1);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+.input-field::placeholder { color: var(--text-4); }
+.input-field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.1);
+  background: #fff;
+}
+.input-field:disabled {
+  background: var(--border-soft);
+  color: var(--text-3);
+  cursor: not-allowed;
+}
+
+select.input-field {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7e96' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.25rem;
+}
+select.input-field option { background: white; color: var(--text-1); }
+
+.label-field {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-3);
+  margin-bottom: 0.375rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ─── Sidebar ─── */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+
+/* ─── Signature box ─── */
+.signature-box {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8125rem;
+  color: var(--text-2);
+}
+
+/* ─── Status badges ─── */
+.badge-pending  { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.badge-approved { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+.badge-rejected { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+.badge-finished { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+
+/* ─── Animations ─── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-fadeInUp { animation: fadeInUp 0.4s ease forwards; }
+.animate-fadeIn   { animation: fadeIn  0.25s ease forwards; }
+
+.stagger-1 { animation-delay: 0.05s; opacity: 0; }
+.stagger-2 { animation-delay: 0.1s;  opacity: 0; }
+.stagger-3 { animation-delay: 0.15s; opacity: 0; }
+.stagger-4 { animation-delay: 0.2s;  opacity: 0; }
+.stagger-5 { animation-delay: 0.25s; opacity: 0; }
+
+/* ─── Tailwind utility overrides for light theme ─── */
+/* These map dark-mode classes to light palette */
+.text-white         { color: var(--text-1) !important; }
+.text-slate-100     { color: var(--text-1) !important; }
+.text-slate-200     { color: var(--text-1) !important; }
+.text-slate-300     { color: var(--text-2) !important; }
+.text-slate-400     { color: var(--text-3) !important; }
+.text-slate-500     { color: var(--text-4) !important; }
+.text-slate-600     { color: var(--text-4) !important; }
+
+.bg-slate-950       { background-color: var(--bg-page) !important; }
+.bg-slate-950\/80   { background-color: var(--surface) !important; }
+.bg-slate-800\/30   { background-color: var(--surface-soft) !important; }
+.bg-slate-800\/50   { background-color: var(--surface-soft) !important; }
+.bg-slate-800\/20   { background-color: var(--border-soft) !important; }
+.bg-slate-900\/30   { background-color: var(--surface-soft) !important; }
+.bg-slate-900\/50   { background-color: var(--surface-soft) !important; }
+
+.border-slate-800\/50 { border-color: var(--border) !important; }
+.border-slate-700\/50 { border-color: var(--border) !important; }
+.border-slate-700\/30 { border-color: var(--border-soft) !important; }
+
+.divide-slate-800\/30 > * + * { border-color: var(--border-soft) !important; }
+.divide-slate-800\/50 > * + * { border-color: var(--border) !important; }
+
+.hover\:bg-slate-800\/50:hover { background-color: var(--accent-soft) !important; }
+.hover\:bg-slate-800\/20:hover { background-color: var(--border-soft) !important; }
+
+/* Brand accent (indigo) stays the same */
+.text-brand-400     { color: var(--accent) !important; }
+.text-brand-300     { color: var(--accent) !important; }
+.bg-brand-600\/20   { background-color: var(--accent-soft) !important; }
+.bg-brand-600\/10   { background-color: rgba(79, 110, 247, 0.06) !important; }
+.border-brand-500\/30 { border-color: rgba(79, 110, 247, 0.25) !important; }
+.border-brand-500\/20 { border-color: rgba(79, 110, 247, 0.18) !important; }
+
+/* mobile header */
+.lg\:hidden.fixed { background: var(--surface); border-color: var(--border); }
