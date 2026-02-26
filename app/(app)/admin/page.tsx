@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Pengajuan } from '@/types'
 import { formatCurrency, formatDateTime, getStatusLabel } from '@/lib/utils'
-import { Shield, Eye, Filter, RefreshCw } from 'lucide-react'
+import { Shield, Filter, RefreshCw } from 'lucide-react'
 import DetailModal from '@/components/DetailModal'
 
 const ACCENT = '#4f6ef7'
@@ -141,12 +141,6 @@ export default function AdminPage() {
                       <td className="px-4 py-3.5"><StatusBadge status={p.status} /></td>
                       <td className="px-4 py-3.5 text-xs" style={{ color: 'var(--text-4)' }}>
                         {formatDateTime(p.submitted_at)}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <button onClick={e => { e.stopPropagation(); setSelected(p) }}
-                          className="p-1.5 rounded-lg" style={{ color: ACCENT }}>
-                          <Eye className="w-4 h-4" />
-                        </button>
                       </td>
                     </tr>
                   ))}

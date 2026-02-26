@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import { Pengajuan } from '@/types'
 import { formatCurrency, formatDate, formatDateTime, getStatusLabel } from '@/lib/utils'
-import { X, ExternalLink, FileText, CheckCircle, XCircle, Image } from 'lucide-react'
+import { X, ExternalLink, FileText, CheckCircle, XCircle, Image, Printer } from 'lucide-react'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
+import Img from 'next/image'
+import { KODEIN_LOGO_BASE64 } from '@/lib/logo-base64'
 
 const QRSignature = dynamic(() => import('@/components/QRSignature'), { ssr: false })
 
@@ -24,11 +26,164 @@ interface DetailModalProps {
   onUpdate?: () => void
 }
 
+// ─── Generate QR as data:image/png ──────────────────────────────────────────
+async function generateQRDataUrl(value: string, size = 90): Promise<string> {
+  if (!value) return ''
+  try {
+    const QRCode = (await import('qrcode')).default
+    return await QRCode.toDataURL(value, {
+      width: size,
+      margin: 1,
+      color: { dark: '#000000', light: '#ffffff' },
+    })
+  } catch { return '' }
+}
+
+// ─── Build full print HTML string ───────────────────────────────────────────
+function buildPrintHtml(p: Pengajuan, qrUser: string, qrManager: string): string {
+  const items = p.items || []
+  const MAX_ROWS = 8
+  const padded = [...items, ...Array(Math.max(0, MAX_ROWS - items.length)).fill(null)]
+
+  const qrCell = (src: string, label: string) =>
+    src
+      ? `<div style="text-align:center">
+           <img src="${src}" width="80" height="80" style="display:inline-block;border:1px solid #ccc;border-radius:4px" />
+         </div>`
+      : `<div style="width:80px;height:80px;border:1px dashed #bbb;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:8px;color:#aaa;text-align:center;line-height:1.4">Belum<br/>ditandatangani</div>`
+
+  const itemRows = padded.map(item => `
+    <tr style="border-bottom:1px solid #ddd;height:22px">
+      <td style="padding:3px 10px;border-right:1px solid #000">
+        ${item ? `${item.nama_barang}${item.satuan ? ` (${item.jumlah} ${item.satuan})` : item.jumlah > 1 ? ` x${item.jumlah}` : ''}` : '&nbsp;'}
+      </td>
+      <td style="padding:3px 10px;text-align:right">
+        ${item && item.total > 0 ? formatCurrency(item.total) : '&nbsp;'}
+      </td>
+    </tr>`).join('')
+
+  const block = `
+  <div style="border:1px solid #000;font-family:Arial,sans-serif;font-size:11px;width:100%;margin-bottom:14px;page-break-inside:avoid">
+    <table style="width:100%;border-collapse:collapse;border-bottom:1px solid #000">
+      <tr>
+        <td style="width:28%;padding:8px 12px;vertical-align:middle;border-right:1px solid #000">
+          <img src="${KODEIN_LOGO_BASE64}" alt="KODEIN" style="height:44px;display:block" />
+        </td>
+        <td style="padding:8px 14px;vertical-align:middle">
+          <div style="font-weight:bold;font-size:14px;text-align:center">SEKOLAH DEVELOPER INDONESIA</div>
+          <div style="margin-top:2px;text-align:center">Kp. Sadang RT. 001 RW. 002</div>
+          <div style="text-align:center">Desa Ragemanunggal Kecamatan Setu, Kabupaten Bekasi</div>
+        </td>
+      </tr>
+    </table>
+    <div style="text-align:center;font-weight:bold;font-size:13px;padding:6px;border-bottom:1px solid #000;letter-spacing:0.5px">
+      BUKTI KAS / BANK KELUAR
+    </div>
+    <table style="width:100%;border-collapse:collapse;border-bottom:1px solid #000">
+      <tr>
+        <td style="padding:4px 10px;width:80px">Tanggal</td><td style="padding:4px 2px;width:8px">:</td>
+        <td style="padding:4px 10px;font-weight:500">${formatDate(p.tanggal)}</td>
+        <td style="padding:4px 10px;width:90px">Rekening Sumber</td><td style="padding:4px 2px;width:8px">:</td>
+        <td style="padding:4px 8px">${p.rekening_sumber || ''}</td>
+        <td style="padding:4px 10px;width:40px">Bank Sumber</td><td style="padding:4px 2px;width:8px">:</td>
+        <td style="padding:4px 8px">${p.bank_sumber || ''}</td>
+        <td style="padding:4px 6px;width:42px">Nama Sumber</td><td style="padding:4px 2px;width:8px">:</td>
+        <td style="padding:4px 8px">${p.nama_sumber || ''}</td>
+      </tr>
+      <tr>
+        <td style="padding:4px 10px">No. Nota</td><td style="padding:4px 2px">:</td>
+        <td style="padding:4px 10px;font-family:monospace;font-size:10px;font-weight:600">${p.no_nota}</td>
+        <td style="padding:4px 10px">Rekening Penerima</td><td style="padding:4px 2px">:</td>
+        <td style="padding:4px 8px">${p.rekening_penerima || ''}</td>
+        <td style="padding:4px 10px">Bank Penerima</td><td style="padding:4px 2px">:</td>
+        <td style="padding:4px 8px">${p.bank_penerima || ''}</td>
+        <td style="padding:4px 6px">Nama Penerima</td><td style="padding:4px 2px">:</td>
+        <td style="padding:4px 8px">${p.nama_penerima || ''}</td>
+      </tr>
+      <tr>
+        <td style="padding:4px 10px">Divisi</td><td style="padding:4px 2px">:</td>
+        <td colspan="10" style="padding:4px 10px">${p.divisi || ''}</td>
+      </tr>
+    </table>
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr style="border-bottom:1px solid #000">
+          <th style="padding:6px 10px;text-align:center;font-weight:bold;border-right:1px solid #000">KETERANGAN</th>
+          <th style="padding:6px 10px;text-align:center;font-weight:bold;width:28%">JUMLAH</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemRows}
+        <tr style="border-top:1px solid #000">
+          <td style="padding:5px 10px;text-align:right;font-weight:bold;border-right:1px solid #000">TOTAL</td>
+          <td style="padding:5px 10px;text-align:right;font-weight:bold">${formatCurrency(p.grand_total)}</td>
+        </tr>
+        <tr style="border-top:1px solid #000">
+          <td colspan="2" style="padding:5px 10px">
+            <span style="font-weight:bold">Terbilang</span>&nbsp;&nbsp;
+            <span style="display:inline-block;border-bottom:1px solid #000;min-width:75%;padding-bottom:1px;font-style:italic;text-transform:capitalize">
+              ${p.grand_total_terbilang || '&nbsp;'}
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <table style="width:100%;border-collapse:collapse;border-top:1px solid #000">
+      <tr>
+        <td style="padding:10px 14px;width:38%;vertical-align:top;border-right:1px solid #000">
+          <div style="margin-bottom:6px">Pemohon,</div>
+          ${qrCell(qrUser, p.submitted_by_username || '')}
+          <div style="font-size:9px;color:#555;margin-top:6px">(ditandatangani secara elektronik)</div>
+        </td>
+        <td style="padding:10px 14px;width:38%;vertical-align:top;border-right:1px solid #000">
+          <div style="margin-bottom:6px">Disetujui oleh,</div>
+          ${qrCell(qrManager, p.approved_by_username || '')}
+          <div style="font-size:9px;color:#555;margin-top:6px">(ditandatangani secara elektronik)</div>
+        </td>
+        <td style="padding:10px 14px;width:24%;vertical-align:top;font-size:9px">
+          <div style="font-weight:bold;margin-bottom:4px">Catatan:</div>
+          <div>${p.keterangan ? p.keterangan : ''}</div>
+        </td>
+      </tr>
+    </table>
+  </div>`
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <title>Bukti Kas / Bank Keluar - ${p.no_nota}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 11px; background: #fff; color: #000; }
+    @page { size: A4 portrait; margin: 12mm; }
+    @media print { .no-print { display: none !important; } }
+  </style>
+</head>
+<body>
+  <div style="padding:8px">
+    ${block}
+  </div>
+  <div class="no-print" style="text-align:center;margin:20px 0;padding-bottom:16px">
+    <button onclick="window.print()" style="padding:8px 28px;font-size:13px;cursor:pointer;background:#4f6ef7;color:#fff;border:none;border-radius:6px;margin-right:10px;font-weight:600">
+      🖨️&nbsp; Cetak
+    </button>
+    <button onclick="window.close()" style="padding:8px 20px;font-size:13px;cursor:pointer;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;font-weight:500">
+      Tutup
+    </button>
+  </div>
+</body>
+</html>`
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 export default function DetailModal({ pengajuan: p, onClose, showActions = false, userRole, onUpdate }: DetailModalProps) {
+  console.log(p.signature_user)
+
   const [loading, setLoading] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   const [showRejectForm, setShowRejectForm] = useState(false)
   const [showAttachment, setShowAttachment] = useState(false)
+  const [printing, setPrinting] = useState(false)
 
   const handleAction = async (action: 'approved' | 'rejected' | 'finished') => {
     setLoading(action)
@@ -48,26 +203,69 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
     } finally { setLoading(null) }
   }
 
+  const handlePrint = async () => {
+    setPrinting(true)
+    try {
+      const [qrUser, qrManager] = await Promise.all([
+        generateQRDataUrl(p.signature_user || ''),
+        generateQRDataUrl(p.signature_manager || ''),
+      ])
+      const html = buildPrintHtml(p, qrUser, qrManager)
+      const win = window.open('', '_blank', 'width=900,height=720')
+      if (!win) { toast.error('Popup diblokir browser'); return }
+      win.document.write(html)
+      win.document.close()
+      win.focus()
+    } catch (err) {
+      toast.error('Gagal membuka preview cetak')
+      console.error(err)
+    } finally {
+      setPrinting(false)
+    }
+  }
+
   const items = p.items || []
-  const isImage = p.file_url && (p.file_url.includes('/image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(p.file_url))
+  const attachments = p.files && p.files.length > 0
+    ? p.files
+    : p.file_url
+      ? [{ url: p.file_url, public_id: p.file_public_id ?? '', name: p.file_name ?? 'Lampiran' }]
+      : []
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
+      <div
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
         style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 20px 60px rgba(30,50,80,0.18)' }}
-        onClick={e => e.stopPropagation()}>
-
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between"
-          style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+        <div
+          className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between"
+          style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}
+        >
           <div>
             <p className="font-mono font-semibold text-sm" style={{ color: ACCENT }}>{p.no_nota}</p>
             <StatusBadge status={p.status} />
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: 'var(--text-3)' }}>
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={e => { e.stopPropagation(); handlePrint() }}
+              disabled={printing}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50"
+              style={{ background: 'var(--accent-soft)', color: ACCENT, border: '1px solid rgba(79,110,247,0.25)' }}
+              title="Cetak Bukti Kas / Bank Keluar"
+            >
+              {printing
+                ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                : <Printer className="w-3.5 h-3.5" />
+              }
+              {printing ? 'Menyiapkan...' : 'Print'}
+            </button>
+            <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: 'var(--text-3)' }}>
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="p-6 space-y-5">
@@ -155,44 +353,57 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
             )}
           </div>
 
-          {/* Attachment */}
-          {p.file_url && (
+          {/* Attachments */}
+          {attachments.length > 0 && (
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-3)' }}>Lampiran</h3>
-              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-soft)' }}>
-                {isImage && (
-                  <div className="relative">
-                    <img
-                      src={p.file_url}
-                      alt={p.file_name || 'Lampiran'}
-                      className="w-full object-contain cursor-pointer"
-                      style={{ maxHeight: showAttachment ? '500px' : '160px', transition: 'max-height 0.3s' }}
-                      onClick={() => setShowAttachment(v => !v)}
-                    />
-                    <div className="absolute bottom-2 right-2 flex gap-2">
-                      <button onClick={() => setShowAttachment(v => !v)}
-                        className="text-xs px-2 py-1 rounded-lg font-medium text-white"
-                        style={{ background: 'rgba(0,0,0,0.5)' }}>
-                        {showAttachment ? 'Perkecil' : 'Perbesar'}
-                      </button>
+              <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-3)' }}>
+                Lampiran ({attachments.length})
+              </h3>
+              <div className="space-y-2">
+                {attachments.map((att, idx) => {
+                  const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(att.url)
+                  const formattedUrl = isImg ? att.url : `${att.url.replace('.pdf','')}.jpg`
+                  // const isImg = att.url.includes('/image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(att.url)
+                  return (
+                    <div key={idx} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-soft)' }}>
+                      {formattedUrl && (
+                        <div className="relative">
+                          <Img
+                            src={formattedUrl}
+                            alt={att.name || 'Lampiran'}
+                            className="w-full object-contain cursor-pointer"
+                            width={500}
+                            height={500}
+                            style={{ maxHeight: showAttachment ? '500px' : '160px', transition: 'max-height 0.3s' }}
+                            onClick={() => setShowAttachment(v => !v)}
+                          />
+                          <div className="absolute bottom-2 right-2">
+                            <button onClick={() => setShowAttachment(v => !v)}
+                              className="text-xs px-2 py-1 rounded-lg font-medium text-white"
+                              style={{ background: 'rgba(0,0,0,0.5)' }}>
+                              {showAttachment ? 'Perkecil' : 'Perbesar'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3 px-4 py-3"
+                        style={{ background: 'var(--surface-soft)', borderTop: '1px solid var(--border-soft)' }}>
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+                          style={{ background: 'var(--accent-soft)' }}>
+                          {isImg ? <Image className="w-3.5 h-3.5" style={{ color: ACCENT }} /> : <FileText className="w-3.5 h-3.5" style={{ color: ACCENT }} />}
+                        </div>
+                        <span className="text-xs flex-1 truncate" style={{ color: 'var(--text-2)' }}>
+                          {att.name || `Lampiran ${idx + 1}`}
+                        </span>
+                        <a href={att.url} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs font-medium"
+                          style={{ color: ACCENT }}>
+                          Buka <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
                     </div>
-                  </div>
-                )}
-                <div className="flex items-center gap-3 px-4 py-3"
-                  style={{ background: 'var(--surface-soft)', borderTop: isImage ? '1px solid var(--border-soft)' : 'none' }}>
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-                    style={{ background: 'var(--accent-soft)' }}>
-                    {isImage ? <Image className="w-3.5 h-3.5" style={{ color: ACCENT }} /> : <FileText className="w-3.5 h-3.5" style={{ color: ACCENT }} />}
-                  </div>
-                  <span className="text-xs flex-1 truncate" style={{ color: 'var(--text-2)' }}>
-                    {p.file_name || 'Lampiran'}
-                  </span>
-                  <a href={p.file_url} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs font-medium"
-                    style={{ color: ACCENT }}>
-                    Buka <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -254,7 +465,9 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
                   { label: 'Pengaju', value: p.signature_user },
                   { label: 'Manager', value: p.signature_manager },
                   { label: 'Admin', value: p.signature_admin_finish },
-                ].map(({ label, value }) => (
+                ]
+                .filter(item => !(item.label === 'Admin' && p.status === 'rejected'))
+                .map(({ label, value }) => (
                   <div key={label} className="flex flex-col items-center gap-2">
                     <QRSignature value={value || ''} label={value || ''} size={80} />
                     <p className="text-xs text-center" style={{ color: 'var(--text-4)' }}>{label}</p>
@@ -267,7 +480,6 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
           {/* Action buttons */}
           {showActions && (
             <div className="pt-2 space-y-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
-              {/* Manager: approve / reject */}
               {userRole === 'manager' && p.status === 'pending' && (
                 <div className="space-y-3">
                   {!showRejectForm ? (
@@ -316,7 +528,6 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
                 </div>
               )}
 
-              {/* Admin: finish */}
               {userRole === 'admin' && p.status === 'approved' && (
                 <button onClick={() => handleAction('finished')}
                   disabled={!!loading}

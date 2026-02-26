@@ -4,15 +4,17 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { generateSignature, formatCurrency, angkaTerbilang } from '@/lib/utils'
 import toast from 'react-hot-toast'
-import { PengajuanItem } from '@/types'
+import { PengajuanItem, FileAttachment } from '@/types'
 import { format } from 'date-fns'
-import { Plus, Trash2, CheckCircle, Upload, X, Image } from 'lucide-react'
+import { Plus, Trash2, CheckCircle, Upload, X, Image, FileText } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import Img from 'next/image'
 
 const QRSignature = dynamic(() => import('@/components/QRSignature'), { ssr: false })
 
 const ACCENT = '#4f6ef7'
 const emptyItem = (): PengajuanItem => ({ nama_barang: '', jumlah: 1, satuan: '', harga: 0, total: 0 })
+const limitUpload = 3
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -26,19 +28,51 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
+function Field({
+  label,
+  name,
+  type = 'text',
+  req = false,
+  placeholder = '',
+  value,
+  onChange
+}: {
+  label: string
+  name: string
+  type?: string
+  req?: boolean
+  placeholder?: string
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+}) {
+  return (
+    <div>
+      <label className="label-field">
+        {label} {req && <span style={{ color: '#ef4444' }}>*</span>}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        className="input-field"
+        placeholder={placeholder}
+        required={req}
+      />
+    </div>
+  )
+}
+
 export default function PengajuanPage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState(false)
-  const [uploadingFile, setUploadingFile] = useState(false)
+  const [uploadingCount, setUploadingCount] = useState(0)
   const [noNota, setNoNota] = useState('')
   const [signature, setSignature] = useState('')
   const [username, setUsername] = useState('')
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [uploadedFile, setUploadedFile] = useState<{ url: string; public_id: string; name: string } | null>(null)
+  const [uploadedFiles, setUploadedFiles] = useState<(FileAttachment & { previewUrl?: string; uploading?: boolean })[]>([])
   const [items, setItems] = useState<PengajuanItem[]>([emptyItem()])
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     tanggal: format(new Date(), 'yyyy-MM-dd'),
@@ -78,47 +112,77 @@ export default function PengajuanPage() {
   }
 
   const grandTotal = items.reduce((s, i) => s + (i.total || 0), 0)
+  
+  const ALLOWED_MIME_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'image/jpg',
+    'image/webp',
+    'image/gif',
+    'application/pdf',
+  ]
 
-  const handleFileSelect = async (file: File) => {
-    if (file.size > 5 * 1024 * 1024) { toast.error('Ukuran file maksimal 5 MB'); return }
-    setSelectedFile(file)
+  const handleFileSelect = async (files: FileList) => {
+    const remaining = limitUpload - uploadedFiles.filter(f => !f.uploading).length
+    const toUpload = Array.from(files).slice(0, remaining)
 
-    // Preview for images
-    if (file.type.startsWith('image/')) {
-      setPreviewUrl(URL.createObjectURL(file))
-    } else {
-      setPreviewUrl(null)
+    if (toUpload.length === 0) {
+      toast.error('Maksimum 3 file lampiran')
+      return
     }
 
-    // Upload immediately to Cloudinary
-    setUploadingFile(true)
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await fetch('/api/upload', { method: 'POST', body: formData })
-      const uploadData: { error?: string; url?: string; public_id?: string } = await res.json()
-      if (!res.ok) throw new Error(uploadData.error ?? 'Upload gagal')
-      setUploadedFile({ url: uploadData.url ?? '', public_id: uploadData.public_id ?? '', name: file.name })
-      toast.success('File berhasil diupload')
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Terjadi kesalahan")
-      setSelectedFile(null)
-      setPreviewUrl(null)
-    } finally {
-      setUploadingFile(false)
+    for (const file of toUpload) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error(`File "${file.name}" melebihi 2 MB`)
+        continue
+      }
+
+      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+        toast.error(`File "${file.name}" bukan gambar (JPG, PNG, WEBP, GIF) atau PDF`)
+        continue
+      }
+
+      const isImage = file.type.startsWith('image/')
+      const tempEntry = {
+        url: '',
+        public_id: '',
+        name: file.name,
+        previewUrl: isImage ? URL.createObjectURL(file) : undefined,
+        uploading: true,
+      }
+      setUploadedFiles(prev => [...prev, tempEntry])
+      setUploadingCount(c => c + 1)
+
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch('/api/upload', { method: 'POST', body: formData })
+        const data: { error?: string; url?: string; public_id?: string } = await res.json()
+        if (!res.ok) throw new Error(data.error ?? 'Upload gagal')
+
+        setUploadedFiles(prev =>
+          prev.map(f => f.name === file.name && f.uploading
+            ? { ...f, url: data.url ?? '', public_id: data.public_id ?? '', uploading: false }
+            : f
+          )
+        )
+        toast.success(`"${file.name}" berhasil diupload`)
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : 'Upload gagal')
+        setUploadedFiles(prev => prev.filter(f => !(f.name === file.name && f.uploading)))
+      } finally {
+        setUploadingCount(c => c - 1)
+      }
     }
   }
 
-  const removeFile = () => {
-    setSelectedFile(null)
-    setUploadedFile(null)
-    setPreviewUrl(null)
-    if (fileInputRef.current) fileInputRef.current.value = ''
+  const removeFile = (idx: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== idx))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (uploadingFile) { toast.error('Tunggu file selesai diupload'); return }
+    if (uploadingCount > 0) { toast.error('Tunggu file selesai diupload'); return }
 
     for (const item of items) {
       if (!item.nama_barang.trim()) { toast.error('Nama barang wajib diisi'); return }
@@ -143,9 +207,7 @@ export default function PengajuanPage() {
           nama_penerima: form.nama_penerima || null,
           items,
           signature_user: sig,
-          file_url: uploadedFile?.url || null,
-          file_public_id: uploadedFile?.public_id || null,
-          file_name: uploadedFile?.name || null,
+          files: uploadedFiles.filter(f => !f.uploading && f.url).map(f => ({ url: f.url, public_id: f.public_id, name: f.name })),
           keterangan: form.catatan || null,
         }),
       })
@@ -159,17 +221,6 @@ export default function PengajuanPage() {
       setLoading(false)
     }
   }
-
-  const F = ({ label, name, type = 'text', req = false, placeholder = '' }: {
-    label: string; name: keyof typeof form; type?: string; req?: boolean; placeholder?: string
-  }) => (
-    <div>
-      <label className="label-field">{label} {req && <span style={{ color: '#ef4444' }}>*</span>}</label>
-      <input type={type} value={form[name]}
-        onChange={e => setForm(p => ({ ...p, [name]: e.target.value }))}
-        className="input-field" placeholder={placeholder} required={req} />
-    </div>
-  )
 
   return (
     <div className="space-y-5 max-w-4xl">
@@ -193,8 +244,8 @@ export default function PengajuanPage() {
                 </div>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-4)' }}>Otomatis digenerate saat submit</p>
               </div>
-              <F label="Tanggal" name="tanggal" type="date" req />
-              <F label="Divisi" name="divisi" placeholder="Contoh: Keuangan" />
+              <Field label="Tanggal" name="tanggal" type="date" req value={form.tanggal} onChange={e => setForm(p => ({ ...p, tanggal: e.target.value }))} />
+              <Field label="Divisi" name="divisi" placeholder="Contoh: Keuangan" value={form.divisi} onChange={e => setForm(p => ({ ...p, divisi: e.target.value }))} />
             </div>
           </Section>
         </div>
@@ -206,16 +257,16 @@ export default function PengajuanPage() {
               <div className="space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider pb-2"
                   style={{ color: 'var(--text-4)', borderBottom: '1px solid var(--border-soft)' }}>Sumber Dana</h3>
-                <F label="Rekening Sumber" name="rekening_sumber" placeholder="Nomor rekening" />
-                <F label="Bank Sumber" name="bank_sumber" placeholder="Nama bank" />
-                <F label="Nama Sumber" name="nama_sumber" placeholder="Nama pemilik rekening" />
+                <Field label="Rekening Sumber" name="rekening_sumber" placeholder="Nomor rekening" value={form.rekening_sumber} onChange={e => setForm(p => ({ ...p, rekening_sumber: e.target.value }))} />
+                <Field label="Bank Sumber" name="bank_sumber" placeholder="Nama bank" value={form.bank_sumber} onChange={e => setForm(p => ({ ...p, bank_sumber: e.target.value }))} />
+                <Field label="Nama Sumber" name="nama_sumber" placeholder="Nama pemilik rekening" value={form.nama_sumber} onChange={e => setForm(p => ({ ...p, nama_sumber: e.target.value }))} />
               </div>
               <div className="space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider pb-2"
                   style={{ color: 'var(--text-4)', borderBottom: '1px solid var(--border-soft)' }}>Penerima Dana</h3>
-                <F label="Rekening Penerima" name="rekening_penerima" placeholder="Nomor rekening" />
-                <F label="Bank Penerima" name="bank_penerima" placeholder="Nama bank" />
-                <F label="Nama Penerima" name="nama_penerima" placeholder="Nama pemilik rekening" />
+                <Field label="Rekening Penerima" name="rekening_penerima" placeholder="Nomor rekening" value={form.rekening_penerima} onChange={e => setForm(p => ({ ...p, rekening_penerima: e.target.value }))} />
+                <Field label="Bank Penerima" name="bank_penerima" placeholder="Nama bank" value={form.bank_penerima} onChange={e => setForm(p => ({ ...p, bank_penerima: e.target.value }))} />
+                <Field label="Nama Penerima" name="nama_penerima" placeholder="Nama pemilik rekening" value={form.nama_penerima} onChange={e => setForm(p => ({ ...p, nama_penerima: e.target.value }))} />
               </div>
             </div>
           </Section>
@@ -315,64 +366,66 @@ export default function PengajuanPage() {
         <div className="animate-fadeInUp stagger-4">
           <Section title="Lampiran">
             <p className="text-xs mb-3" style={{ color: 'var(--text-4)' }}>
-              Upload foto/file bukti (opsional, maks. 5 MB) — disimpan di Cloudinary
+              Upload foto/pdf (opsional, maks. {limitUpload} file, masing-masing maks. 2 MB)
             </p>
             <input ref={fileInputRef} type="file" accept="image/*,application/pdf"
-              onChange={e => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+              multiple
+              onChange={e => e.target.files && e.target.files.length > 0 && handleFileSelect(e.target.files)}
               className="hidden" />
 
-            {selectedFile ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-4 p-4 rounded-xl"
-                  style={{ background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.15)' }}>
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                    style={{ background: '#fff', border: '1px solid rgba(79,110,247,0.2)' }}>
-                    {uploadingFile
-                      ? <div className="w-4 h-4 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin" />
-                      : uploadedFile
-                        ? <Image className="w-4 h-4" style={{ color: '#22c55e' }} />
-                        : <Upload className="w-4 h-4" style={{ color: ACCENT }} />
-                    }
-                  </div>
-                  <div className="flex-1 overflow-hidden">
-                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-1)' }}>{selectedFile.name}</p>
-                    <p className="text-xs" style={{ color: uploadedFile ? '#22c55e' : 'var(--text-4)' }}>
-                      {uploadingFile ? 'Mengupload ke Cloudinary...' : uploadedFile ? '✓ Tersimpan di Cloudinary' : 'Menunggu upload'}
-                    </p>
-                  </div>
-                  <button type="button" onClick={removeFile}
-                    className="p-1.5 rounded-lg" style={{ color: '#ef4444', background: '#fef2f2' }}>
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Image preview */}
-                {previewUrl && (
-                  <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-soft)', maxHeight: '200px' }}>
-                    <img src={previewUrl} alt="Preview" className="w-full object-contain" style={{ maxHeight: '200px' }} />
-                  </div>
-                )}
-
-                {/* Cloudinary URL display */}
-                {uploadedFile && (
-                  <div className="rounded-xl px-3 py-2 flex items-center gap-2"
-                    style={{ background: 'var(--surface-soft)', border: '1px solid var(--border-soft)' }}>
-                    <span className="text-xs font-mono truncate flex-1" style={{ color: 'var(--text-4)' }}>
-                      {uploadedFile.url}
-                    </span>
-                    <a href={uploadedFile.url} target="_blank" rel="noopener noreferrer"
-                      className="text-xs font-medium shrink-0" style={{ color: ACCENT }}>
-                      Lihat →
-                    </a>
-                  </div>
-                )}
+            {/* File list */}
+            {uploadedFiles.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {uploadedFiles.map((f, idx) => {
+                  const isImg = f.previewUrl !== undefined
+                  return (
+                    <div key={idx}>
+                      <div className="flex items-center gap-3 p-3 rounded-xl"
+                        style={{ background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.15)' }}>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                          style={{ background: '#fff', border: '1px solid rgba(79,110,247,0.2)' }}>
+                          {f.uploading
+                            ? <div className="w-4 h-4 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin" />
+                            : isImg
+                              ? <Image className="w-4 h-4" style={{ color: '#22c55e' }} />
+                              : <FileText className="w-4 h-4" style={{ color: '#22c55e' }} />
+                          }
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                          <p className="text-sm font-medium truncate" style={{ color: 'var(--text-1)' }}>{f.name}</p>
+                          <p className="text-xs" style={{ color: f.uploading ? 'var(--text-4)' : '#22c55e' }}>
+                            {f.uploading ? 'Mengupload...' : '✓ Tersimpan'}
+                          </p>
+                        </div>
+                        {!f.uploading && f.url && (
+                          <a href={f.url} target="_blank" rel="noopener noreferrer"
+                            className="text-xs font-medium shrink-0" style={{ color: ACCENT }}>Lihat →</a>
+                        )}
+                        <button type="button" onClick={() => removeFile(idx)}
+                          className="p-1.5 rounded-lg" style={{ color: '#ef4444', background: '#fef2f2' }}>
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {/* Image preview */}
+                      {f.previewUrl && (
+                        <div className="rounded-xl overflow-hidden mt-1" style={{ border: '1px solid var(--border-soft)', maxHeight: '160px' }}>
+                          <Img src={f.previewUrl} alt="Preview" className="w-full object-contain" width={500} height={500} style={{ maxHeight: '160px' }} />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
-            ) : (
+            )}
+
+            {uploadedFiles.length < limitUpload && (
               <button type="button" onClick={() => fileInputRef.current?.click()}
-                className="w-full flex items-center justify-center gap-2 p-5 rounded-xl transition-all"
+                className="w-full flex items-center justify-center gap-2 p-4 rounded-xl transition-all"
                 style={{ border: '2px dashed var(--border)', color: 'var(--text-3)' }}>
                 <Upload className="w-5 h-5" />
-                <span className="text-sm font-medium">Pilih File / Ambil Foto</span>
+                <span className="text-sm font-medium">
+                  {uploadedFiles.length === 0 ? 'Pilih File / Ambil Foto' : `Tambah File (${uploadedFiles.length}/${limitUpload})`}
+                </span>
               </button>
             )}
           </Section>
@@ -404,7 +457,7 @@ export default function PengajuanPage() {
             style={{ border: '1px solid var(--border)', color: 'var(--text-2)', background: 'var(--surface)' }}>
             Batal
           </button>
-          <button type="submit" disabled={loading || uploadingFile}
+          <button type="submit" disabled={loading || uploadingCount > 0}
             className="flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
             style={{ background: ACCENT }}>
             {loading

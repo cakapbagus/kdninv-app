@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     const {
       tanggal, divisi, rekening_sumber, bank_sumber, nama_sumber,
       rekening_penerima, bank_penerima, nama_penerima,
-      items, signature_user, file_url, file_public_id, file_name, keterangan,
+      items, signature_user, file_url, file_public_id, file_name, files, keterangan,
     } = body
 
     if (!items || items.length === 0) {
@@ -86,13 +86,20 @@ export async function POST(req: NextRequest) {
     const notaRows = await sql`SELECT public.generate_no_nota(${year}) as no_nota`
     const noNota = notaRows[0].no_nota as string
 
+    // Support both legacy single-file fields and new multi-file `files` array
+    const filesArray = files && Array.isArray(files) && files.length > 0
+      ? files
+      : file_url
+        ? [{ url: file_url, public_id: file_public_id ?? '', name: file_name ?? '' }]
+        : null
+
     const result = await sql`
       INSERT INTO pengajuan (
         no_nota, tanggal, divisi,
         rekening_sumber, bank_sumber, nama_sumber,
         rekening_penerima, bank_penerima, nama_penerima,
         items, grand_total, grand_total_terbilang,
-        file_url, file_public_id, file_name,
+        file_url, file_public_id, file_name, files,
         submitted_by, submitted_by_username,
         signature_user, keterangan, status
       ) VALUES (
@@ -100,7 +107,8 @@ export async function POST(req: NextRequest) {
         ${rekening_sumber ?? null}, ${bank_sumber ?? null}, ${nama_sumber ?? null},
         ${rekening_penerima ?? null}, ${bank_penerima ?? null}, ${nama_penerima ?? null},
         ${JSON.stringify(itemsWithTotal)}, ${grandTotal}, ${angkaTerbilang(grandTotal)},
-        ${file_url ?? null}, ${file_public_id ?? null}, ${file_name ?? null},
+        ${filesArray?.[0]?.url ?? null}, ${filesArray?.[0]?.public_id ?? null}, ${filesArray?.[0]?.name ?? null},
+        ${filesArray ? JSON.stringify(filesArray) : null},
         ${session.sub}, ${session.username},
         ${signature_user ?? null}, ${keterangan ?? null}, 'pending'
       )

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { formatCurrency, formatDateTime, getStatusLabel } from '@/lib/utils'
 import { Pengajuan } from '@/types'
-import { FileText, Eye } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import DetailModal from '@/components/DetailModal'
 
 const ACCENT = '#4f6ef7'
@@ -78,12 +78,6 @@ export default function HistoryPage() {
                       <td className="px-5 py-3.5"><StatusBadge status={p.status} /></td>
                       <td className="px-5 py-3.5 text-xs" style={{ color: 'var(--text-4)' }}>
                         {formatDateTime(p.submitted_at)}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <button onClick={e => { e.stopPropagation(); setSelected(p) }}
-                          className="p-1.5 rounded-lg transition-colors" style={{ color: ACCENT }}>
-                          <Eye className="w-4 h-4" />
-                        </button>
                       </td>
                     </tr>
                   ))}

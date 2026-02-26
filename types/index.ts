@@ -10,6 +10,12 @@ export interface Profile {
   updated_at: string
 }
 
+export interface FileAttachment {
+  url: string
+  public_id: string
+  name: string
+}
+
 export interface PengajuanItem {
   nama_barang: string
   jumlah: number
@@ -35,6 +41,7 @@ export interface Pengajuan {
   file_url: string | null
   file_public_id: string | null
   file_name: string | null
+  files: FileAttachment[] | null
   status: Status
   submitted_by: number
   submitted_by_username: string

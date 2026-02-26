@@ -5,6 +5,17 @@ import { uploadToCloudinary } from '@/lib/cloudinary'
 // Note: In Next.js 15 App Router, bodyParser config is not needed —
 // formData() is natively supported. Remove old pages-style `export const config`.
 
+export const MAX_SIZE = 2 * 1024 * 1024 // 2MB
+
+const ALLOWED_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/jpg',
+  'image/webp',
+  'image/gif',
+  'application/pdf',
+]
+
 export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -14,8 +25,16 @@ export async function POST(req: NextRequest) {
     const file = formData.get('file') as File | null
     if (!file) return NextResponse.json({ error: 'File tidak ditemukan' }, { status: 400 })
 
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > MAX_SIZE) {
       return NextResponse.json({ error: 'Ukuran file maksimal 5 MB' }, { status: 400 })
+    }
+
+    // ✅ Validasi MIME type
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      return NextResponse.json(
+        { error: 'Hanya diperbolehkan file gambar (JPG, PNG, WEBP, GIF) atau PDF' },
+        { status: 400 }
+      )
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())

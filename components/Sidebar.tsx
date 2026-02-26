@@ -24,7 +24,7 @@ const ROLE_PILL: Record<string, string> = {
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard',       icon: LayoutDashboard, roles: ['user', 'admin', 'manager'] },
   { href: '/pengajuan', label: 'Form Pengajuan',   icon: ClipboardList,   roles: ['user', 'admin'] },
-  { href: '/history',   label: 'History',          icon: History,         roles: ['user'] },
+  { href: '/history',   label: 'History',          icon: History,         roles: ['user', 'admin'] },
   { href: '/admin',     label: 'Admin Panel',      icon: Shield,          roles: ['admin', 'manager'] },
   { href: '/users',     label: 'User Management',  icon: Users,           roles: ['admin', 'manager'] },
 ]

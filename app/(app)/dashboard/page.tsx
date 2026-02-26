@@ -30,6 +30,7 @@ type PengajuanRow = {
   submitted_at: string
   no_nota: string
   items: Array<{ nama_barang: string }> | null
+  submitted_by: string
 }
 
 export default async function DashboardPage() {
@@ -46,12 +47,12 @@ export default async function DashboardPage() {
   const allPengajuan = (
     profile.role === 'user'
       ? await sql`
-          SELECT status, grand_total, submitted_at, no_nota, items
+          SELECT status, grand_total, submitted_at, no_nota, items, submitted_by
           FROM pengajuan WHERE submitted_by = ${session.sub}
           ORDER BY submitted_at DESC
         `
       : await sql`
-          SELECT status, grand_total, submitted_at, no_nota, items
+          SELECT status, grand_total, submitted_at, no_nota, items, submitted_by
           FROM pengajuan ORDER BY submitted_at DESC
         `
   ) as PengajuanRow[]
@@ -71,6 +72,22 @@ export default async function DashboardPage() {
   ]
 
   const historyLink = profile.role === 'user' ? '/history' : '/admin'
+
+  const filteredPengajuan = allPengajuan.filter(p => {
+    if (profile.role === 'admin') {
+      return (
+        p.status === 'approved' ||
+        (p.status === 'pending' && p.submitted_by === session.sub)
+      )
+    }
+
+    if (profile.role === 'manager') {
+      return p.status === 'pending'
+    }
+
+    // user
+    return ['pending', 'approved'].includes(p.status) && p.submitted_by === session.sub
+  })
 
   return (
     <div className="space-y-5">
@@ -129,9 +146,9 @@ export default async function DashboardPage() {
         </div>
 
         <div className="glass rounded-xl overflow-hidden">
-          {allPengajuan.length > 0 ? (
+          {filteredPengajuan.length > 0 ? (
             <div>
-              {allPengajuan.slice(0, 5).map((p, i) => (
+              {filteredPengajuan.slice(0, 5).map((p, i) => (
                 <div key={p.no_nota}
                   className="px-4 py-3 flex items-center justify-between cursor-default"
                   style={{ borderBottom: i < 4 ? '1px solid var(--border-soft)' : 'none' }}>
@@ -160,10 +177,10 @@ export default async function DashboardPage() {
           ) : (
             <div className="py-14 text-center">
               <FileText className="w-9 h-9 mx-auto mb-3" style={{ color: 'var(--text-4)' }} />
-              <p className="text-sm font-medium" style={{ color: 'var(--text-3)' }}>Belum ada pengajuan</p>
+              <p className="text-sm font-medium" style={{ color: 'var(--text-3)' }}>Belum ada pengajuan terbaru</p>
               {profile.role !== 'manager' && (
                 <Link href="/pengajuan" className="inline-block mt-2 text-sm" style={{ color: ACCENT }}>
-                  Buat pengajuan pertama →
+                  Buat pengajuan →
                 </Link>
               )}
             </div>
