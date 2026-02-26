@@ -20,7 +20,7 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET)
     return {
-      sub: payload['sub'] as number,
+      sub: payload['sub'] as string,
       username: payload['username'] as string,
       role: payload['role'] as Role,
     }

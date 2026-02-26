@@ -59,7 +59,7 @@ export interface Pengajuan {
 
 // JWT payload stored in cookie
 export interface JWTPayload {
-  sub: number       // user id
+  sub: string       // user id
   username: string
   role: Role
 }

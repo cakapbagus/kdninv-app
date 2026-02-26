@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Pengajuan } from '@/types'
-import { formatCurrency, formatDate, formatDateTime, getStatusLabel, generateSignature } from '@/lib/utils'
+import { formatCurrency, formatDate, formatDateTime, getStatusLabel } from '@/lib/utils'
 import { X, ExternalLink, FileText, CheckCircle, XCircle, Image } from 'lucide-react'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
