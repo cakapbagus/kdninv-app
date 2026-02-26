@@ -4,8 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff, FileText } from 'lucide-react'
-
-const ACCENT = '#4f6ef7'
+import { ACCENT } from '@/lib/constants'
 
 export default function LoginPage() {
   const [username, setUsername]       = useState('')
@@ -109,7 +108,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-60 mt-1"
+              className="w-full py-2.5 rounded-xl text-sm font-semibold !text-white transition-all disabled:opacity-60 mt-1"
               style={{ background: ACCENT, fontFamily: "'Poppins',sans-serif" }}>
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -122,31 +121,14 @@ export default function LoginPage() {
 
           <div className="mt-5 pt-4" style={{ borderTop: '1px solid var(--border-soft)' }}>
             <p className="text-xs text-center" style={{ color: 'var(--text-4)' }}>
-              Hubungi administrator jika mengalami masalah login
+              Hubungi administrator jika mengalami kendala
             </p>
+          </div>
+          <div className="mt-2 pt-2 text-center" >
+            <a href="https://github.com/cakapbagus/kdninv-app" target='blank' style={{ color: ACCENT }}>Github</a>
           </div>
         </div>
 
-        {/* Demo accounts */}
-        <div className="mt-4 rounded-xl p-4 animate-fadeInUp stagger-2"
-          style={{ background: 'white', border: '1px solid var(--border-soft)' }}>
-          <p className="text-xs font-semibold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-4)' }}>
-            Demo Akun
-          </p>
-          <div className="space-y-2">
-            {[
-              { role: 'User',    user: 'userdemo',    pass: 'demo123' },
-              { role: 'Admin',   user: 'admindemo',   pass: 'demo123' },
-              { role: 'Manager', user: 'managerdemo', pass: 'demo123' },
-            ].map(a => (
-              <div key={a.role} className="flex items-center justify-between text-xs">
-                <span className="w-16 font-medium" style={{ color: 'var(--text-3)' }}>{a.role}</span>
-                <span className="font-mono" style={{ color: 'var(--text-2)' }}>{a.user}</span>
-                <span className="font-mono" style={{ color: 'var(--text-4)' }}>/ {a.pass}</span>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   )

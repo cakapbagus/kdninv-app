@@ -86,6 +86,9 @@ export async function POST(req: NextRequest) {
     const notaRows = await sql`SELECT public.generate_no_nota(${year}) as no_nota`
     const noNota = notaRows[0].no_nota as string
 
+    const userRows = await sql`SELECT full_name FROM users WHERE id = ${session.sub}`
+    const submittedByFullName = userRows[0]?.full_name ?? null
+
     // Support both legacy single-file fields and new multi-file `files` array
     const filesArray = files && Array.isArray(files) && files.length > 0
       ? files
@@ -100,7 +103,7 @@ export async function POST(req: NextRequest) {
         rekening_penerima, bank_penerima, nama_penerima,
         items, grand_total, grand_total_terbilang,
         file_url, file_public_id, file_name, files,
-        submitted_by, submitted_by_username,
+        submitted_by, submitted_by_username, submitted_by_full_name,
         signature_user, keterangan, status
       ) VALUES (
         ${noNota}, ${tanggal}, ${divisi ?? null},
@@ -109,7 +112,7 @@ export async function POST(req: NextRequest) {
         ${JSON.stringify(itemsWithTotal)}, ${grandTotal}, ${angkaTerbilang(grandTotal)},
         ${filesArray?.[0]?.url ?? null}, ${filesArray?.[0]?.public_id ?? null}, ${filesArray?.[0]?.name ?? null},
         ${filesArray ? JSON.stringify(filesArray) : null},
-        ${session.sub}, ${session.username},
+        ${session.sub}, ${session.username}, ${submittedByFullName},
         ${signature_user ?? null}, ${keterangan ?? null}, 'pending'
       )
       RETURNING id, no_nota

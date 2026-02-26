@@ -17,7 +17,9 @@ export async function GET() {
   const rows = await sql`
     SELECT id, username, full_name, role, created_at FROM users
     WHERE id != ${session.sub}
-    ORDER BY created_at ASC
+    ORDER BY
+      CASE role WHEN 'manager' THEN 1 WHEN 'admin' THEN 2 ELSE 3 END,
+      username ASC
   `
   return NextResponse.json(rows)
 }

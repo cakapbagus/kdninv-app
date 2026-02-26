@@ -1,20 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { uploadToCloudinary } from '@/lib/cloudinary'
+import { MAX_UPLOAD_SIZE, ALLOWED_MIME_TYPES } from '@/lib/constants'
 
 // Note: In Next.js 15 App Router, bodyParser config is not needed —
 // formData() is natively supported. Remove old pages-style `export const config`.
-
-export const MAX_SIZE = 2 * 1024 * 1024 // 2MB
-
-const ALLOWED_MIME_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/jpg',
-  'image/webp',
-  'image/gif',
-  'application/pdf',
-]
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
@@ -25,8 +15,8 @@ export async function POST(req: NextRequest) {
     const file = formData.get('file') as File | null
     if (!file) return NextResponse.json({ error: 'File tidak ditemukan' }, { status: 400 })
 
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'Ukuran file maksimal 5 MB' }, { status: 400 })
+    if (file.size > MAX_UPLOAD_SIZE) {
+      return NextResponse.json({ error: `Ukuran file maksimal ${MAX_UPLOAD_SIZE / 1024 / 1024} MB` }, { status: 400 })
     }
 
     // ✅ Validasi MIME type

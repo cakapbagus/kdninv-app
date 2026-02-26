@@ -19,7 +19,7 @@ export default function QRSignature({ value, label, size = 100 }: QRSignaturePro
         await QRCode.toCanvas(canvasRef.current!, value, {
           width: size,
           margin: 1,
-          color: { dark: '#4f6ef7', light: '#f7f9fc' },
+          color: { dark: '#241d09', light: '#f7f9fc' },
         })
       } catch (err) { console.error('QR error:', err) }
     }

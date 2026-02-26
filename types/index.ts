@@ -45,6 +45,7 @@ export interface Pengajuan {
   status: Status
   submitted_by: number
   submitted_by_username: string
+  submitted_by_full_name: string | null
   submitted_at: string
   signature_user: string | null
   signature_manager: string | null
@@ -52,6 +53,7 @@ export interface Pengajuan {
   approved_at: string | null
   approved_by: number | null
   approved_by_username: string | null
+  approved_by_full_name: string | null
   rejected_at: string | null
   rejected_by: number | null
   rejected_by_username: string | null

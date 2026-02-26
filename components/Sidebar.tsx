@@ -5,58 +5,40 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import type { Profile } from '@/types'
 import toast from 'react-hot-toast'
+import { ACCENT } from '@/lib/constants'
 import {
   FileText, LayoutDashboard, ClipboardList, History,
   Shield, LogOut, Menu, X, ChevronRight,
-  KeyRound, Eye, EyeOff, Users,
+  KeyRound, Eye, EyeOff, Users, Settings,
 } from 'lucide-react'
 
 interface SidebarProps { profile: Profile }
 
-const ACCENT = '#4f6ef7'
-
 const ROLE_PILL: Record<string, string> = {
-  user: 'bg-indigo-50 text-indigo-600 border-indigo-200',
-  admin: 'bg-blue-50 text-blue-600 border-blue-200',
+  user:    'bg-indigo-50 text-indigo-600 border-indigo-200',
+  admin:   'bg-blue-50   text-blue-600   border-blue-200',
   manager: 'bg-purple-50 text-purple-600 border-purple-200',
 }
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard',       icon: LayoutDashboard, roles: ['user', 'admin', 'manager'] },
-  { href: '/pengajuan', label: 'Form Pengajuan',   icon: ClipboardList,   roles: ['user', 'admin'] },
-  { href: '/history',   label: 'History',          icon: History,         roles: ['user', 'admin'] },
-  { href: '/admin',     label: 'Admin Panel',      icon: Shield,          roles: ['admin', 'manager'] },
-  { href: '/users',     label: 'User Management',  icon: Users,           roles: ['admin', 'manager'] },
+  { href: '/dashboard', label: 'Dashboard',      icon: LayoutDashboard, roles: ['user', 'admin', 'manager'] },
+  { href: '/pengajuan', label: 'Form Pengajuan',  icon: ClipboardList,   roles: ['user', 'admin'] },
+  { href: '/history',   label: 'History',         icon: History,         roles: ['user', 'admin'] },
+  { href: '/admin',     label: 'Admin Panel',     icon: Shield,          roles: ['admin', 'manager'] },
+  { href: '/users',     label: 'User Management', icon: Users,           roles: ['admin', 'manager'] },
 ]
 
-// ─── Password input helper ────────────────────────────────────────────────────
-function PwInput({
-  label, value, onChange, show, toggle,
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  show: boolean
-  toggle: () => void
+function PwInput({ label, value, onChange, show, toggle }: {
+  label: string; value: string; onChange: (v: string) => void; show: boolean; toggle: () => void
 }) {
   return (
     <div>
       <label className="label-field">{label}</label>
       <div className="relative">
-        <input
-          type={show ? 'text' : 'password'}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          className="input-field pr-10"
-          placeholder="••••••••"
-          required
-        />
-        <button
-          type="button"
-          onClick={toggle}
-          className="absolute right-3 top-1/2 -translate-y-1/2"
-          style={{ color: 'var(--text-4)' }}
-        >
+        <input type={show ? 'text' : 'password'} value={value} onChange={e => onChange(e.target.value)}
+          className="input-field pr-10" placeholder="••••••••" required />
+        <button type="button" onClick={toggle}
+          className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-4)' }}>
           {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
       </div>
@@ -64,12 +46,14 @@ function PwInput({
   )
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
 export default function Sidebar({ profile }: SidebarProps) {
   const pathname = usePathname()
-  const router = useRouter()
+  const router   = useRouter()
+
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [showPwModal, setShowPwModal] = useState(false)
+
+  // ── Change Password modal state ──────────────────────────────────────────
+  const [showPwModal,     setShowPwModal]     = useState(false)
   const [oldPassword,     setOldPassword]     = useState('')
   const [newPassword,     setNewPassword]     = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -78,12 +62,27 @@ export default function Sidebar({ profile }: SidebarProps) {
   const [showConf, setShowConf] = useState(false)
   const [pwLoading, setPwLoading] = useState(false)
 
+  // ── Edit Full Name modal state ───────────────────────────────────────────
+  const [showNameModal, setShowNameModal] = useState(false)
+  const [newFullName,   setNewFullName]   = useState(profile.full_name ?? '')
+  const [namePassword,  setNamePassword]  = useState('')
+  const [showNamePw,    setShowNamePw]    = useState(false)
+  const [nameLoading,   setNameLoading]   = useState(false)
+  const [localFullName, setLocalFullName] = useState(profile.full_name ?? '')
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
   const resetPwForm = () => {
     setOldPassword(''); setNewPassword(''); setConfirmPassword('')
     setShowOld(false); setShowNew(false); setShowConf(false)
   }
-  const openPwModal  = () => { resetPwForm(); setShowPwModal(true);  setMobileOpen(false) }
+  const openPwModal  = () => { resetPwForm(); setShowPwModal(true); setMobileOpen(false) }
   const closePwModal = () => { resetPwForm(); setShowPwModal(false) }
+
+  const openNameModal  = () => {
+    setNewFullName(localFullName); setNamePassword(''); setShowNamePw(false)
+    setShowNameModal(true); setMobileOpen(false)
+  }
+  const closeNameModal = () => setShowNameModal(false)
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -92,7 +91,7 @@ export default function Sidebar({ profile }: SidebarProps) {
     router.refresh()
   }
 
-  const handleChangePassword = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     if (newPassword !== confirmPassword) { toast.error('Konfirmasi password tidak cocok'); return }
     if (newPassword.length < 6)          { toast.error('Password minimal 6 karakter');     return }
@@ -109,14 +108,32 @@ export default function Sidebar({ profile }: SidebarProps) {
       closePwModal()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Gagal mengubah password')
-    } finally {
-      setPwLoading(false)
-    }
+    } finally { setPwLoading(false) }
   }
 
-  const visibleNavItems = NAV_ITEMS.filter(item => item.roles.includes(profile.role))
+  const handleUpdateFullName = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newFullName.trim()) { toast.error('Nama lengkap wajib diisi'); return }
+    if (!namePassword)       { toast.error('Password wajib diisi');     return }
+    setNameLoading(true)
+    try {
+      const res = await fetch('/api/auth/update-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: newFullName.trim(), password: namePassword }),
+      })
+      const data: { error?: string; full_name?: string } = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Gagal')
+      setLocalFullName(data.full_name ?? newFullName.trim())
+      toast.success('Nama lengkap berhasil diubah')
+      closeNameModal()
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Gagal mengubah nama')
+    } finally { setNameLoading(false) }
+  }
 
-  // ─── Sidebar content (shared between desktop + mobile) ──────────────────
+  const visibleNavItems = NAV_ITEMS.filter(i => i.roles.includes(profile.role))
+
   function SidebarContent() {
     return (
       <div className="flex flex-col h-full">
@@ -134,14 +151,27 @@ export default function Sidebar({ profile }: SidebarProps) {
           </div>
         </div>
 
-        {/* Profile pill */}
-        <div className="px-4 py-3 mx-3 mt-3 rounded-xl"
-          style={{ background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.1)' }}>
-          <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>{profile.username}</p>
-          <span className={`text-xs px-1.5 py-0.5 rounded border font-semibold ${ROLE_PILL[profile.role] ?? ''}`}>
+        {/* Profile pill — klik untuk edit full_name */}
+        <button onClick={openNameModal} className="relative text-left mx-3 mt-3 px-4 py-3 rounded-xl transition-all"
+          style={{ background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.1)' }}
+          onMouseEnter={e => (e.currentTarget.style.border = '1px solid rgba(79,110,247,0.35)')}
+          onMouseLeave={e => (e.currentTarget.style.border = '1px solid rgba(79,110,247,0.1)')}>
+          {localFullName ? (
+            <p className="text-sm font-semibold leading-tight truncate pr-5" style={{ color: 'var(--text-1)' }}>
+              {localFullName}
+            </p>
+          ) : (
+            <p className="text-xs italic pr-5" style={{ color: 'var(--text-4)' }}>Belum ada nama lengkap</p>
+          )}
+          <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-3)' }}>{profile.username}</p>
+          <span className={`inline-block mt-1 text-xs px-1.5 py-0.5 rounded border font-semibold ${ROLE_PILL[profile.role] ?? ''}`}>
             {profile.role}
           </span>
-        </div>
+          <div className="absolute bottom-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)' }}>
+            <Settings className="w-3 h-3" style={{ color: 'var(--text-4)' }} />
+          </div>
+        </button>
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-1">
@@ -167,13 +197,13 @@ export default function Sidebar({ profile }: SidebarProps) {
         {/* Bottom */}
         <div className="px-3 py-3 space-y-1" style={{ borderTop: '1px solid var(--border-soft)' }}>
           <button onClick={openPwModal}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
             style={{ color: 'var(--text-3)' }}>
             <KeyRound className="w-4 h-4" />
             Ganti Password
           </button>
           <button onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
             style={{ color: '#ef4444' }}>
             <LogOut className="w-4 h-4" />
             Keluar
@@ -211,12 +241,71 @@ export default function Sidebar({ profile }: SidebarProps) {
       )}
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:flex w-56 flex-col shrink-0 h-screen sticky top-0"
+      <div className="hidden lg:flex w-68 flex-col shrink-0 h-screen sticky top-0"
         style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}>
         <SidebarContent />
       </div>
 
-      {/* Change Password Modal */}
+      {/* ── Modal: Edit Nama Lengkap ────────────────────────────────────────── */}
+      {showNameModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={closeNameModal}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="relative w-full max-w-sm rounded-2xl p-6"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 8px 40px rgba(30,50,80,0.15)' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-semibold" style={{ color: 'var(--text-1)' }}>Edit Nama Lengkap</h2>
+              <button onClick={closeNameModal} className="p-1.5 rounded-lg" style={{ color: 'var(--text-3)' }}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleUpdateFullName} className="space-y-4">
+              <div>
+                <label htmlFor="fn-name" className="label-field">
+                  Nama Lengkap <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input id="fn-name" type="text" value={newFullName}
+                  onChange={e => setNewFullName(e.target.value)}
+                  className="input-field" placeholder="Nama lengkap Anda" required autoComplete="name" />
+                <p className="text-xs mt-1" style={{ color: 'var(--text-4)' }}>
+                  Nama ini akan tampil di sidebar dan tanda tangan dokumen.
+                </p>
+              </div>
+              <div>
+                <label htmlFor="fn-pw" className="label-field">
+                  Konfirmasi Password <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div className="relative">
+                  <input id="fn-pw" type={showNamePw ? 'text' : 'password'} value={namePassword}
+                    onChange={e => setNamePassword(e.target.value)}
+                    className="input-field pr-10" placeholder="Masukkan password Anda"
+                    required autoComplete="current-password" />
+                  <button type="button" onClick={() => setShowNamePw(v => !v)} tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-4)' }}>
+                    {showNamePw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={closeNameModal}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+                  style={{ background: 'var(--surface-soft)', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
+                  Batal
+                </button>
+                <button type="submit" disabled={nameLoading}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold !text-white disabled:opacity-60"
+                  style={{ background: ACCENT }}>
+                  {nameLoading
+                    ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Menyimpan...</>
+                    : 'Simpan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Ganti Password ───────────────────────────────────────────── */}
       {showPwModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={closePwModal}>
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
@@ -230,9 +319,9 @@ export default function Sidebar({ profile }: SidebarProps) {
               </button>
             </div>
             <form onSubmit={handleChangePassword} className="space-y-4">
-              <PwInput label="Password Lama"              value={oldPassword}     onChange={setOldPassword}     show={showOld}  toggle={() => setShowOld(v => !v)} />
-              <PwInput label="Password Baru"              value={newPassword}     onChange={setNewPassword}     show={showNew}  toggle={() => setShowNew(v => !v)} />
-              <PwInput label="Konfirmasi Password Baru"   value={confirmPassword} onChange={setConfirmPassword} show={showConf} toggle={() => setShowConf(v => !v)} />
+              <PwInput label="Password Lama"            value={oldPassword}     onChange={setOldPassword}     show={showOld}  toggle={() => setShowOld(v => !v)} />
+              <PwInput label="Password Baru"            value={newPassword}     onChange={setNewPassword}     show={showNew}  toggle={() => setShowNew(v => !v)} />
+              <PwInput label="Konfirmasi Password Baru" value={confirmPassword} onChange={setConfirmPassword} show={showConf} toggle={() => setShowConf(v => !v)} />
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={closePwModal}
                   className="flex-1 py-2.5 rounded-xl text-sm font-medium"
@@ -240,7 +329,7 @@ export default function Sidebar({ profile }: SidebarProps) {
                   Batal
                 </button>
                 <button type="submit" disabled={pwLoading}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold !text-white disabled:opacity-60"
                   style={{ background: ACCENT }}>
                   {pwLoading ? 'Menyimpan...' : 'Simpan'}
                 </button>

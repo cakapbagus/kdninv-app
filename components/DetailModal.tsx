@@ -48,14 +48,23 @@ function buildPrintHtml(p: Pengajuan, qrUser: string, qrManager: string): string
   const qrCell = (src: string, label: string) =>
     src
       ? `<div style="text-align:center">
-           <img src="${src}" width="80" height="80" style="display:inline-block;border:1px solid #ccc;border-radius:4px" />
+            <img src="${src}" width="80" height="80" style="display:inline-block;border:1px solid #ccc;border-radius:4px" />
+            <p className="text-xs text-center" style={{ color: 'var(--text-4)' }}>${label}</p>
          </div>`
-      : `<div style="width:80px;height:80px;border:1px dashed #bbb;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:8px;color:#aaa;text-align:center;line-height:1.4">Belum<br/>ditandatangani</div>`
-
+      : `<div style="text-align:center">
+            <div style="width:80px;height:80px;border:1px dashed #bbb;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:8px;color:#aaa;text-align:center;line-height:1.4">Belum<br/>ditandatangani</div>
+        </div>`
+        
   const itemRows = padded.map(item => `
     <tr style="border-bottom:1px solid #ddd;height:22px">
+      <td style="padding:3px 8px;text-align:center;border-right:1px solid #000;white-space:nowrap">
+        ${item ? `${item.jumlah}${item.satuan ? ' ' + item.satuan : ''}` : '&nbsp;'}
+      </td>
       <td style="padding:3px 10px;border-right:1px solid #000">
-        ${item ? `${item.nama_barang}${item.satuan ? ` (${item.jumlah} ${item.satuan})` : item.jumlah > 1 ? ` x${item.jumlah}` : ''}` : '&nbsp;'}
+        ${item ? item.nama_barang : '&nbsp;'}
+      </td>
+      <td style="padding:3px 10px;text-align:right;border-right:1px solid #000">
+        ${item && item.harga > 0 ? formatCurrency(item.harga) : '&nbsp;'}
       </td>
       <td style="padding:3px 10px;text-align:right">
         ${item && item.total > 0 ? formatCurrency(item.total) : '&nbsp;'}
@@ -108,18 +117,20 @@ function buildPrintHtml(p: Pengajuan, qrUser: string, qrManager: string): string
     <table style="width:100%;border-collapse:collapse">
       <thead>
         <tr style="border-bottom:1px solid #000">
-          <th style="padding:6px 10px;text-align:center;font-weight:bold;border-right:1px solid #000">KETERANGAN</th>
-          <th style="padding:6px 10px;text-align:center;font-weight:bold;width:28%">JUMLAH</th>
+          <th style="padding:6px 8px;text-align:center;font-weight:bold;border-right:1px solid #000;width:14%">BANYAKNYA</th>
+          <th style="padding:6px 10px;text-align:center;font-weight:bold;border-right:1px solid #000">NAMA BARANG</th>
+          <th style="padding:6px 10px;text-align:center;font-weight:bold;border-right:1px solid #000;width:22%">HARGA</th>
+          <th style="padding:6px 10px;text-align:center;font-weight:bold;width:22%">JUMLAH</th>
         </tr>
       </thead>
       <tbody>
         ${itemRows}
-        <tr style="border-top:1px solid #000">
-          <td style="padding:5px 10px;text-align:right;font-weight:bold;border-right:1px solid #000">TOTAL</td>
-          <td style="padding:5px 10px;text-align:right;font-weight:bold">${formatCurrency(p.grand_total)}</td>
+        <tr>
+          <td colspan="3" style="padding:5px 10px;text-align:right;font-weight:bold;border-top:1px solid #000;border-right:1px solid #000">TOTAL</td>
+          <td style="padding:5px 10px;text-align:right;font-weight:bold;border-top:1px solid #000">${formatCurrency(p.grand_total)}</td>
         </tr>
         <tr style="border-top:1px solid #000">
-          <td colspan="2" style="padding:5px 10px">
+          <td colspan="4" style="padding:5px 10px">
             <span style="font-weight:bold">Terbilang</span>&nbsp;&nbsp;
             <span style="display:inline-block;border-bottom:1px solid #000;min-width:75%;padding-bottom:1px;font-style:italic;text-transform:capitalize">
               ${p.grand_total_terbilang || '&nbsp;'}
@@ -132,13 +143,13 @@ function buildPrintHtml(p: Pengajuan, qrUser: string, qrManager: string): string
       <tr>
         <td style="padding:10px 14px;width:38%;vertical-align:top;border-right:1px solid #000">
           <div style="margin-bottom:6px">Pemohon,</div>
-          ${qrCell(qrUser, p.submitted_by_username || '')}
-          <div style="font-size:9px;color:#555;margin-top:6px">(ditandatangani secara elektronik)</div>
+          ${qrCell(qrUser, p.submitted_by_full_name || p.submitted_by_username || '')}
+          <div style="font-size:9px;color:#555;margin-top:6px;text-align:center">(ditandatangani secara elektronik)</div>
         </td>
         <td style="padding:10px 14px;width:38%;vertical-align:top;border-right:1px solid #000">
           <div style="margin-bottom:6px">Disetujui oleh,</div>
-          ${qrCell(qrManager, p.approved_by_username || '')}
-          <div style="font-size:9px;color:#555;margin-top:6px">(ditandatangani secara elektronik)</div>
+          ${qrCell(qrManager, p.approved_by_full_name || p.approved_by_username || '')}
+          <div style="font-size:9px;color:#555;margin-top:6px;text-align:center">(ditandatangani secara elektronik)</div>
         </td>
         <td style="padding:10px 14px;width:24%;vertical-align:top;font-size:9px">
           <div style="font-weight:bold;margin-bottom:4px">Catatan:</div>
@@ -274,7 +285,7 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
             {[
               ['Tanggal', formatDate(p.tanggal)],
               ['Divisi', p.divisi],
-              ['Pengaju', p.submitted_by_username],
+              ['Pengaju', p.submitted_by_full_name || p.submitted_by_username],
               ['Waktu Pengajuan', formatDateTime(p.submitted_at)],
             ].filter(([, v]) => v).map(([label, value], i, arr) => (
               <div key={label} className="flex justify-between px-4 py-2.5 text-sm"
@@ -379,7 +390,7 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
                           />
                           <div className="absolute bottom-2 right-2">
                             <button onClick={() => setShowAttachment(v => !v)}
-                              className="text-xs px-2 py-1 rounded-lg font-medium text-white"
+                              className="text-xs px-2 py-1 rounded-lg font-medium !text-white"
                               style={{ background: 'rgba(0,0,0,0.5)' }}>
                               {showAttachment ? 'Perkecil' : 'Perbesar'}
                             </button>
@@ -486,7 +497,7 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
                     <div className="flex gap-3">
                       <button onClick={() => handleAction('approved')}
                         disabled={!!loading}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold !text-white disabled:opacity-60"
                         style={{ background: '#22c55e' }}>
                         {loading === 'approved'
                           ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -495,7 +506,7 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
                       </button>
                       <button onClick={() => setShowRejectForm(true)}
                         disabled={!!loading}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold !text-white disabled:opacity-60"
                         style={{ background: '#ef4444' }}>
                         <XCircle className="w-4 h-4" />
                         Tolak
@@ -516,7 +527,7 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
                         </button>
                         <button onClick={() => handleAction('rejected')}
                           disabled={!!loading || !rejectionReason.trim()}
-                          className="flex-1 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+                          className="flex-1 py-2 rounded-xl text-sm font-semibold !text-white disabled:opacity-60"
                           style={{ background: '#ef4444' }}>
                           {loading === 'rejected'
                             ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto block" />
@@ -531,7 +542,7 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
               {userRole === 'admin' && p.status === 'approved' && (
                 <button onClick={() => handleAction('finished')}
                   disabled={!!loading}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold !text-white disabled:opacity-60"
                   style={{ background: '#6366f1' }}>
                   {loading === 'finished'
                     ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

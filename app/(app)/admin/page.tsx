@@ -5,8 +5,7 @@ import { Pengajuan } from '@/types'
 import { formatCurrency, formatDateTime, getStatusLabel } from '@/lib/utils'
 import { Shield, Filter, RefreshCw } from 'lucide-react'
 import DetailModal from '@/components/DetailModal'
-
-const ACCENT = '#4f6ef7'
+import { ACCENT } from '@/lib/constants'
 
 function StatusBadge({ status }: { status: string }) {
   const cls = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected', finished: 'badge-finished' }[status] || 'badge-pending'

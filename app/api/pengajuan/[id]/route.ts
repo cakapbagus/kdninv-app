@@ -29,6 +29,7 @@ export async function PATCH(
           approved_at = ${now},
           approved_by = ${session.sub},
           approved_by_username = ${session.username},
+          approved_by_full_name = (SELECT full_name FROM users WHERE id = ${session.sub}),
           signature_manager = ${sig},
           updated_at = ${now}
         WHERE id = ${id}

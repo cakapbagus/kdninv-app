@@ -9,10 +9,10 @@ import { format } from 'date-fns'
 import { Plus, Trash2, CheckCircle, Upload, X, Image, FileText } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Img from 'next/image'
+import { ACCENT, MAX_UPLOAD_SIZE, ALLOWED_MIME_TYPES, LIMIT_UPLOAD } from '@/lib/constants'
 
 const QRSignature = dynamic(() => import('@/components/QRSignature'), { ssr: false })
 
-const ACCENT = '#4f6ef7'
 const emptyItem = (): PengajuanItem => ({ nama_barang: '', jumlah: 1, satuan: '', harga: 0, total: 0 })
 const limitUpload = 3
 
@@ -30,7 +30,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Field({
   label,
-  name,
   type = 'text',
   req = false,
   placeholder = '',
@@ -38,7 +37,6 @@ function Field({
   onChange
 }: {
   label: string
-  name: string
   type?: string
   req?: boolean
   placeholder?: string
@@ -113,32 +111,23 @@ export default function PengajuanPage() {
 
   const grandTotal = items.reduce((s, i) => s + (i.total || 0), 0)
   
-  const ALLOWED_MIME_TYPES = [
-    'image/jpeg',
-    'image/png',
-    'image/jpg',
-    'image/webp',
-    'image/gif',
-    'application/pdf',
-  ]
-
   const handleFileSelect = async (files: FileList) => {
     const remaining = limitUpload - uploadedFiles.filter(f => !f.uploading).length
     const toUpload = Array.from(files).slice(0, remaining)
 
     if (toUpload.length === 0) {
-      toast.error('Maksimum 3 file lampiran')
+      toast.error(`Maksimum ${limitUpload} file lampiran`)
       return
     }
 
     for (const file of toUpload) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error(`File "${file.name}" melebihi 2 MB`)
+      if (file.size > MAX_UPLOAD_SIZE) {
+        toast.error(`File ${file.name} melebihi ${MAX_UPLOAD_SIZE / 1024 / 1024} MB`)
         continue
       }
 
       if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-        toast.error(`File "${file.name}" bukan gambar (JPG, PNG, WEBP, GIF) atau PDF`)
+        toast.error(`File ${file.name} bukan gambar (JPG, PNG, WEBP, GIF) atau PDF`)
         continue
       }
 
@@ -244,8 +233,8 @@ export default function PengajuanPage() {
                 </div>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-4)' }}>Otomatis digenerate saat submit</p>
               </div>
-              <Field label="Tanggal" name="tanggal" type="date" req value={form.tanggal} onChange={e => setForm(p => ({ ...p, tanggal: e.target.value }))} />
-              <Field label="Divisi" name="divisi" placeholder="Contoh: Keuangan" value={form.divisi} onChange={e => setForm(p => ({ ...p, divisi: e.target.value }))} />
+              <Field label="Tanggal" type="date" req value={form.tanggal} onChange={e => setForm(p => ({ ...p, tanggal: e.target.value }))} />
+              <Field label="Divisi" placeholder="Contoh: Keuangan" value={form.divisi} onChange={e => setForm(p => ({ ...p, divisi: e.target.value }))} />
             </div>
           </Section>
         </div>
@@ -257,16 +246,16 @@ export default function PengajuanPage() {
               <div className="space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider pb-2"
                   style={{ color: 'var(--text-4)', borderBottom: '1px solid var(--border-soft)' }}>Sumber Dana</h3>
-                <Field label="Rekening Sumber" name="rekening_sumber" placeholder="Nomor rekening" value={form.rekening_sumber} onChange={e => setForm(p => ({ ...p, rekening_sumber: e.target.value }))} />
-                <Field label="Bank Sumber" name="bank_sumber" placeholder="Nama bank" value={form.bank_sumber} onChange={e => setForm(p => ({ ...p, bank_sumber: e.target.value }))} />
-                <Field label="Nama Sumber" name="nama_sumber" placeholder="Nama pemilik rekening" value={form.nama_sumber} onChange={e => setForm(p => ({ ...p, nama_sumber: e.target.value }))} />
+                <Field label="Rekening Sumber" placeholder="Nomor rekening" value={form.rekening_sumber} onChange={e => setForm(p => ({ ...p, rekening_sumber: e.target.value }))} />
+                <Field label="Bank Sumber" placeholder="Nama bank" value={form.bank_sumber} onChange={e => setForm(p => ({ ...p, bank_sumber: e.target.value }))} />
+                <Field label="Nama Sumber" placeholder="Nama pemilik rekening" value={form.nama_sumber} onChange={e => setForm(p => ({ ...p, nama_sumber: e.target.value }))} />
               </div>
               <div className="space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider pb-2"
                   style={{ color: 'var(--text-4)', borderBottom: '1px solid var(--border-soft)' }}>Penerima Dana</h3>
-                <Field label="Rekening Penerima" name="rekening_penerima" placeholder="Nomor rekening" value={form.rekening_penerima} onChange={e => setForm(p => ({ ...p, rekening_penerima: e.target.value }))} />
-                <Field label="Bank Penerima" name="bank_penerima" placeholder="Nama bank" value={form.bank_penerima} onChange={e => setForm(p => ({ ...p, bank_penerima: e.target.value }))} />
-                <Field label="Nama Penerima" name="nama_penerima" placeholder="Nama pemilik rekening" value={form.nama_penerima} onChange={e => setForm(p => ({ ...p, nama_penerima: e.target.value }))} />
+                <Field label="Rekening Penerima" placeholder="Nomor rekening" value={form.rekening_penerima} onChange={e => setForm(p => ({ ...p, rekening_penerima: e.target.value }))} />
+                <Field label="Bank Penerima" placeholder="Nama bank" value={form.bank_penerima} onChange={e => setForm(p => ({ ...p, bank_penerima: e.target.value }))} />
+                <Field label="Nama Penerima" placeholder="Nama pemilik rekening" value={form.nama_penerima} onChange={e => setForm(p => ({ ...p, nama_penerima: e.target.value }))} />
               </div>
             </div>
           </Section>
@@ -366,7 +355,7 @@ export default function PengajuanPage() {
         <div className="animate-fadeInUp stagger-4">
           <Section title="Lampiran">
             <p className="text-xs mb-3" style={{ color: 'var(--text-4)' }}>
-              Upload foto/pdf (opsional, maks. {limitUpload} file, masing-masing maks. 2 MB)
+              Upload foto/pdf (opsional, maks. {LIMIT_UPLOAD} file, masing-masing maks. {MAX_UPLOAD_SIZE / 1024 / 1024} MB)
             </p>
             <input ref={fileInputRef} type="file" accept="image/*,application/pdf"
               multiple
@@ -458,7 +447,7 @@ export default function PengajuanPage() {
             Batal
           </button>
           <button type="submit" disabled={loading || uploadingCount > 0}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+            className="flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-xl text-sm font-semibold !text-white disabled:opacity-60"
             style={{ background: ACCENT }}>
             {loading
               ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Mengirim...</>

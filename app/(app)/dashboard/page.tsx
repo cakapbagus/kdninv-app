@@ -5,8 +5,7 @@ import { FileText, Clock, CheckCircle, XCircle, CheckSquare, TrendingUp } from '
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import type { Profile } from '@/types'
-
-const ACCENT = '#4f6ef7'
+import { ACCENT } from '@/lib/constants'
 
 const STATUS_CLASSES: Record<string, string> = {
   pending: 'badge-pending',
