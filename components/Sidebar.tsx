@@ -11,6 +11,9 @@ import {
   Shield, LogOut, Menu, X, ChevronRight,
   KeyRound, Eye, EyeOff, Users, Settings,
 } from 'lucide-react'
+import dynamic from 'next/dynamic'
+
+const NotificationToggle = dynamic(() => import('@/components/NotificationToggle'), { ssr: false })
 
 interface SidebarProps { profile: Profile }
 
@@ -197,6 +200,7 @@ export default function Sidebar({ profile }: SidebarProps) {
 
         {/* Bottom */}
         <div className="px-3 py-3 space-y-1" style={{ borderTop: '1px solid var(--border-soft)' }}>
+          <NotificationToggle />
           <button onClick={openPwModal}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
             style={{ color: 'var(--text-3)' }}>

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Pr69QBMXTbbkm7ILGIsT2JFlSe2CaT16Lfe3yQCJETLYeiF0skukNajGkPN1SP6
+\restrict 6ng4bXJs51lakvcJ2lLvxuVCePrtc65qkh2DuUBYQsxcREjLRn9KmFjqX5BwOCf
 
 -- Dumped from database version 17.8 (6108b59)
 -- Dumped by pg_dump version 17.9
@@ -103,6 +103,40 @@ CREATE TABLE public.pengajuan (
 
 
 --
+-- Name: rekening; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rekening (
+    id integer NOT NULL,
+    no_rekening text NOT NULL,
+    bank text NOT NULL,
+    nama text NOT NULL,
+    created_by integer,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+--
+-- Name: rekening_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.rekening_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: rekening_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.rekening_id_seq OWNED BY public.rekening.id;
+
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -139,6 +173,13 @@ ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
 
 
 --
+-- Name: rekening id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rekening ALTER COLUMN id SET DEFAULT nextval('public.rekening_id_seq'::regclass);
+
+
+--
 -- Name: users id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -167,6 +208,14 @@ ALTER TABLE ONLY public.pengajuan
 
 ALTER TABLE ONLY public.pengajuan
     ADD CONSTRAINT pengajuan_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: rekening rekening_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rekening
+    ADD CONSTRAINT rekening_pkey PRIMARY KEY (id);
 
 
 --
@@ -239,8 +288,16 @@ ALTER TABLE ONLY public.pengajuan
 
 
 --
+-- Name: rekening rekening_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rekening
+    ADD CONSTRAINT rekening_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Pr69QBMXTbbkm7ILGIsT2JFlSe2CaT16Lfe3yQCJETLYeiF0skukNajGkPN1SP6
+\unrestrict 6ng4bXJs51lakvcJ2lLvxuVCePrtc65qkh2DuUBYQsxcREjLRn9KmFjqX5BwOCf
 

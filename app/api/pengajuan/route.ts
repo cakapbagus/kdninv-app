@@ -118,6 +118,16 @@ export async function POST(req: NextRequest) {
       RETURNING id, no_nota
     `
 
+    // Push notif ke manager
+    import('@/lib/webpush').then(({ sendPushToRoles }) => {
+      const displayName = submittedByFullName || session.username
+      sendPushToRoles(["manager"], {
+        title: "📋 Pengajuan Nota Baru",
+        body: `${displayName} mengajukan nota ${result[0].no_nota}`,
+        url: "/admin",
+      }).catch(() => {})
+    })
+
     return NextResponse.json({ success: true, id: result[0].id, no_nota: result[0].no_nota })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Gagal membuat pengajuan'
