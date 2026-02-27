@@ -33,6 +33,8 @@ function Field({
   req = false,
   placeholder = '',
   value,
+  numberOnly = false,
+  alphaOnly = false,
   onChange
 }: {
   label: string
@@ -40,8 +42,26 @@ function Field({
   req?: boolean
   placeholder?: string
   value: string
+  numberOnly?: boolean
+  alphaOnly?: boolean
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
 }) {
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let newValue = e.target.value
+
+    if (numberOnly) {
+      newValue = newValue.replace(/[^0-9]/g, '')
+    }
+
+    if (alphaOnly) {
+      newValue = newValue.replace(/[^a-zA-Z\s]/g, '')
+    }
+
+    e.target.value = newValue
+    onChange(e)
+  }
+
   return (
     <div>
       <label className="label-field">
@@ -50,10 +70,11 @@ function Field({
       <input
         type={type}
         value={value}
-        onChange={onChange}
+        onChange={handleChange}
         className="input-field"
         placeholder={placeholder}
         required={req}
+        inputMode={numberOnly ? "numeric" : undefined}
       />
     </div>
   )
@@ -252,6 +273,7 @@ export default function PengajuanPage() {
       if (!res.ok) throw new Error(submitData.error ?? 'Terjadi kesalahan')
       toast.success('Pengajuan berhasil dikirim!')
       router.push('/history')
+      // router.refresh()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Gagal mengirim pengajuan')
     } finally {
@@ -294,16 +316,16 @@ export default function PengajuanPage() {
               <div className="space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider pb-2"
                   style={{ color: 'var(--text-4)', borderBottom: '1px solid var(--border-soft)' }}>Sumber Dana</h3>
-                <Field label="Rekening Sumber" placeholder="Nomor rekening" value={form.rekening_sumber} onChange={e => setForm(p => ({ ...p, rekening_sumber: e.target.value }))} />
-                <Field label="Bank Sumber" placeholder="Nama bank" value={form.bank_sumber} onChange={e => setForm(p => ({ ...p, bank_sumber: e.target.value }))} />
-                <Field label="Nama Sumber" placeholder="Nama pemilik rekening" value={form.nama_sumber} onChange={e => setForm(p => ({ ...p, nama_sumber: e.target.value }))} />
+                <Field label="Rekening Sumber" req numberOnly placeholder="Nomor rekening" value={form.rekening_sumber} onChange={e => setForm(p => ({ ...p, rekening_sumber: e.target.value }))} />
+                <Field label="Bank Sumber" req alphaOnly placeholder="Nama bank" value={form.bank_sumber} onChange={e => setForm(p => ({ ...p, bank_sumber: e.target.value }))} />
+                <Field label="Nama Sumber" req alphaOnly placeholder="Nama pemilik rekening" value={form.nama_sumber} onChange={e => setForm(p => ({ ...p, nama_sumber: e.target.value }))} />
               </div>
               <div className="space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider pb-2"
                   style={{ color: 'var(--text-4)', borderBottom: '1px solid var(--border-soft)' }}>Penerima Dana</h3>
-                <Field label="Rekening Penerima" placeholder="Nomor rekening" value={form.rekening_penerima} onChange={e => setForm(p => ({ ...p, rekening_penerima: e.target.value }))} />
-                <Field label="Bank Penerima" placeholder="Nama bank" value={form.bank_penerima} onChange={e => setForm(p => ({ ...p, bank_penerima: e.target.value }))} />
-                <Field label="Nama Penerima" placeholder="Nama pemilik rekening" value={form.nama_penerima} onChange={e => setForm(p => ({ ...p, nama_penerima: e.target.value }))} />
+                <Field label="Rekening Penerima" req numberOnly placeholder="Nomor rekening" value={form.rekening_penerima} onChange={e => setForm(p => ({ ...p, rekening_penerima: e.target.value }))} />
+                <Field label="Bank Penerima" req alphaOnly placeholder="Nama bank" value={form.bank_penerima} onChange={e => setForm(p => ({ ...p, bank_penerima: e.target.value }))} />
+                <Field label="Nama Penerima" req alphaOnly placeholder="Nama pemilik rekening" value={form.nama_penerima} onChange={e => setForm(p => ({ ...p, nama_penerima: e.target.value }))} />
               </div>
             </div>
           </Section>
@@ -341,7 +363,7 @@ export default function PengajuanPage() {
                       <label className="label-field">Satuan</label>
                       <input type="text" value={item.satuan}
                         onChange={e => updateItem(idx, 'satuan', e.target.value)}
-                        className="input-field" placeholder="pcs, kg, unit..." />
+                        className="input-field" placeholder="pcs, kg, unit, box, dus..." />
                     </div>
                     <div>
                       <label className="label-field">Harga Satuan <span style={{ color: '#ef4444' }}>*</span></label>
