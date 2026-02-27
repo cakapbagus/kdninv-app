@@ -9,8 +9,8 @@ export async function POST(req: NextRequest) {
 
   const { full_name, password } = await req.json()
 
-  if (!full_name?.trim())
-    return NextResponse.json({ error: 'Nama lengkap wajib diisi' }, { status: 400 })
+  if (full_name === undefined)
+    return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 })
   if (!password)
     return NextResponse.json({ error: 'Password wajib diisi untuk konfirmasi' }, { status: 400 })
 
@@ -20,9 +20,11 @@ export async function POST(req: NextRequest) {
   const valid = await bcrypt.compare(password, rows[0].password as string)
   if (!valid) return NextResponse.json({ error: 'Password salah' }, { status: 400 })
 
+  const newName = full_name?.trim() || null
+
   await sql`
-    UPDATE users SET full_name = ${full_name.trim()}, updated_at = NOW()
+    UPDATE users SET full_name = ${newName}, updated_at = NOW()
     WHERE id = ${session.sub}
   `
-  return NextResponse.json({ success: true, full_name: full_name.trim() })
+  return NextResponse.json({ success: true, full_name: newName })
 }

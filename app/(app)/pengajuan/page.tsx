@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { generateSignature, formatCurrency, angkaTerbilang } from '@/lib/utils'
 import toast from 'react-hot-toast'
-import { PengajuanItem, FileAttachment } from '@/types'
+import { PengajuanItem } from '@/types'
 import { format } from 'date-fns'
 import { Plus, Trash2, CheckCircle, Upload, X, Image, FileText } from 'lucide-react'
 import dynamic from 'next/dynamic'
@@ -14,7 +14,6 @@ import { ACCENT, MAX_UPLOAD_SIZE, ALLOWED_MIME_TYPES, LIMIT_UPLOAD } from '@/lib
 const QRSignature = dynamic(() => import('@/components/QRSignature'), { ssr: false })
 
 const emptyItem = (): PengajuanItem => ({ nama_barang: '', jumlah: 1, satuan: '', harga: 0, total: 0 })
-const limitUpload = 3
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -65,11 +64,10 @@ export default function PengajuanPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState(false)
-  const [uploadingCount, setUploadingCount] = useState(0)
   const [noNota, setNoNota] = useState('')
   const [signature, setSignature] = useState('')
   const [username, setUsername] = useState('')
-  const [uploadedFiles, setUploadedFiles] = useState<(FileAttachment & { previewUrl?: string; uploading?: boolean })[]>([])
+  const [selectedFiles, setSelectedFiles] = useState<{ file: File; previewUrl?: string }[]>([])
   const [items, setItems] = useState<PengajuanItem[]>([emptyItem()])
 
   const [form, setForm] = useState({
@@ -111,67 +109,95 @@ export default function PengajuanPage() {
 
   const grandTotal = items.reduce((s, i) => s + (i.total || 0), 0)
   
-  const handleFileSelect = async (files: FileList) => {
-    const remaining = limitUpload - uploadedFiles.filter(f => !f.uploading).length
-    const toUpload = Array.from(files).slice(0, remaining)
+  const compressImage = (file: File, maxSize = MAX_UPLOAD_SIZE, defQuality = 0.9): Promise<File> => {
+    return new Promise((resolve) => {
+      // PDF skip
+      if (file.type === 'application/pdf') { resolve(file); return }
 
-    if (toUpload.length === 0) {
-      toast.error(`Maksimum ${limitUpload} file lampiran`)
+      const img = new window.Image()
+      const url = URL.createObjectURL(file)
+
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+
+        let { width, height } = img
+        const MAX_DIM = 1920
+
+        // Perkecil dimensi kalau terlalu besar
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) { height = Math.round(height * MAX_DIM / width); width = MAX_DIM }
+          else                { width = Math.round(width * MAX_DIM / height); height = MAX_DIM }
+        }
+
+        const canvas = document.createElement('canvas')
+        canvas.width  = width
+        canvas.height = height
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+
+        // Coba quality 0.9 dulu, kalau masih > maxSizeMB turunkan terus
+        const tryCompress = (quality: number) => {
+          canvas.toBlob(blob => {
+            if (!blob) { resolve(file); return }
+
+            if (blob.size <= maxSize || quality <= 0.3) {
+              resolve(new File([blob], file.name.replace(/\.[^/.]+$/, '.webp'), { type: 'image/webp', lastModified: Date.now() }))
+            } else {
+              tryCompress(Math.round((quality - 0.1) * 10) / 10)
+            }
+          }, 'image/webp', quality)
+        }
+
+        tryCompress(defQuality)
+      }
+
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+      img.src = url
+    })
+  }
+
+  const handleFileSelect = async (files: FileList) => {
+    const remaining = LIMIT_UPLOAD - selectedFiles.length
+    const toAdd = Array.from(files).slice(0, remaining)
+
+    if (toAdd.length === 0) {
+      toast.error(`Maksimum ${LIMIT_UPLOAD} file lampiran`)
       return
     }
 
-    for (const file of toUpload) {
-      if (file.size > MAX_UPLOAD_SIZE) {
-        toast.error(`File ${file.name} melebihi ${MAX_UPLOAD_SIZE / 1024 / 1024} MB`)
-        continue
-      }
-
+    for (const file of toAdd) {
       if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-        toast.error(`File ${file.name} bukan gambar (JPG, PNG, WEBP, GIF) atau PDF`)
+        toast.error(`File "${file.name}" bukan gambar (JPG, PNG, WEBP, GIF) atau PDF`)
         continue
       }
 
-      const isImage = file.type.startsWith('image/')
-      const tempEntry = {
-        url: '',
-        public_id: '',
-        name: file.name,
-        previewUrl: isImage ? URL.createObjectURL(file) : undefined,
-        uploading: true,
+      let fileToAdd = file
+      if (file.type !== 'application/pdf' && file.size > MAX_UPLOAD_SIZE) {
+        toast.loading(`Mengompres "${file.name}"...`, { id: `compress-${file.name}` })
+        fileToAdd = await compressImage(file)
+        toast.dismiss(`compress-${file.name}`)
+        if (fileToAdd.size <= MAX_UPLOAD_SIZE) {
+          toast.success(`"${file.name}" dikompres ke ${(fileToAdd.size / 1024).toFixed(0)} KB`)
+        } else {
+          toast.error(`"${file.name}" masih terlalu besar setelah dikompres`)
+          continue
+        }
       }
-      setUploadedFiles(prev => [...prev, tempEntry])
-      setUploadingCount(c => c + 1)
 
-      try {
-        const formData = new FormData()
-        formData.append('file', file)
-        const res = await fetch('/api/upload', { method: 'POST', body: formData })
-        const data: { error?: string; url?: string; public_id?: string } = await res.json()
-        if (!res.ok) throw new Error(data.error ?? 'Upload gagal')
-
-        setUploadedFiles(prev =>
-          prev.map(f => f.name === file.name && f.uploading
-            ? { ...f, url: data.url ?? '', public_id: data.public_id ?? '', uploading: false }
-            : f
-          )
-        )
-        toast.success(`"${file.name}" berhasil diupload`)
-      } catch (err: unknown) {
-        toast.error(err instanceof Error ? err.message : 'Upload gagal')
-        setUploadedFiles(prev => prev.filter(f => !(f.name === file.name && f.uploading)))
-      } finally {
-        setUploadingCount(c => c - 1)
-      }
+      const previewUrl = fileToAdd.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
+      setSelectedFiles(prev => [...prev, { file: fileToAdd, previewUrl }])
     }
   }
 
   const removeFile = (idx: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== idx))
+    setSelectedFiles(prev => {
+      const removed = prev[idx]
+      if (removed?.previewUrl) URL.revokeObjectURL(removed.previewUrl)
+      return prev.filter((_, i) => i !== idx)
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (uploadingCount > 0) { toast.error('Tunggu file selesai diupload'); return }
 
     for (const item of items) {
       if (!item.nama_barang.trim()) { toast.error('Nama barang wajib diisi'); return }
@@ -182,6 +208,28 @@ export default function PengajuanPage() {
     setLoading(true)
     try {
       const sig = generateSignature(username)
+
+      // Upload semua file saat submit dengan nama "lampiran_N_[no_nota]"
+      const noNotaSlug = noNota.replace(/\//g, '-') // "001-KDNINV-2025"
+      const uploadedFiles: { url: string; public_id: string; name: string }[] = []
+
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const { file } = selectedFiles[i]
+        const ext = file.name.split('.').pop() || 'jpg'
+        const filenameOverride = `lampiran_${i + 1}_${noNotaSlug}.${ext}`
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('filename_override', filenameOverride)
+        const res = await fetch('/api/upload', { method: 'POST', body: formData })
+        const data: { error?: string; url?: string; public_id?: string } = await res.json()
+        if (!res.ok) throw new Error(data.error ?? `Gagal upload lampiran ${i + 1}`)
+        uploadedFiles.push({
+          url: data.url ?? '',
+          public_id: data.public_id ?? '',
+          name: filenameOverride,
+        })
+      }
+
       const res = await fetch('/api/pengajuan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -196,7 +244,7 @@ export default function PengajuanPage() {
           nama_penerima: form.nama_penerima || null,
           items,
           signature_user: sig,
-          files: uploadedFiles.filter(f => !f.uploading && f.url).map(f => ({ url: f.url, public_id: f.public_id, name: f.name })),
+          files: uploadedFiles,
           keterangan: form.catatan || null,
         }),
       })
@@ -355,7 +403,7 @@ export default function PengajuanPage() {
         <div className="animate-fadeInUp stagger-4">
           <Section title="Lampiran">
             <p className="text-xs mb-3" style={{ color: 'var(--text-4)' }}>
-              Upload foto/pdf (opsional, maks. {LIMIT_UPLOAD} file, masing-masing maks. {MAX_UPLOAD_SIZE / 1024 / 1024} MB)
+              Upload foto/pdf (opsional, maks. {LIMIT_UPLOAD} file)
             </p>
             <input ref={fileInputRef} type="file" accept="image/*,application/pdf"
               multiple
@@ -363,9 +411,9 @@ export default function PengajuanPage() {
               className="hidden" />
 
             {/* File list */}
-            {uploadedFiles.length > 0 && (
+            {selectedFiles.length > 0 && (
               <div className="space-y-2 mb-3">
-                {uploadedFiles.map((f, idx) => {
+                {selectedFiles.map((f, idx) => {
                   const isImg = f.previewUrl !== undefined
                   return (
                     <div key={idx}>
@@ -373,21 +421,19 @@ export default function PengajuanPage() {
                         style={{ background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.15)' }}>
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                           style={{ background: '#fff', border: '1px solid rgba(79,110,247,0.2)' }}>
-                          {f.uploading
-                            ? <div className="w-4 h-4 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin" />
-                            : isImg
-                              ? <Image className="w-4 h-4" style={{ color: '#22c55e' }} />
-                              : <FileText className="w-4 h-4" style={{ color: '#22c55e' }} />
+                          {isImg
+                            ? <Image className="w-4 h-4" style={{ color: '#22c55e' }} />
+                            : <FileText className="w-4 h-4" style={{ color: '#22c55e' }} />
                           }
                         </div>
                         <div className="flex-1 overflow-hidden">
-                          <p className="text-sm font-medium truncate" style={{ color: 'var(--text-1)' }}>{f.name}</p>
-                          <p className="text-xs" style={{ color: f.uploading ? 'var(--text-4)' : '#22c55e' }}>
-                            {f.uploading ? 'Mengupload...' : '✓ Tersimpan'}
+                          <p className="text-sm font-medium truncate" style={{ color: 'var(--text-1)' }}>{f.file.name}</p>
+                          <p className="text-xs" style={{ color: '#22c55e' }}>
+                            {f.file.name}
                           </p>
                         </div>
-                        {!f.uploading && f.url && (
-                          <a href={f.url} target="_blank" rel="noopener noreferrer"
+                        {f.previewUrl && (
+                          <a href={f.previewUrl} target="_blank" rel="noopener noreferrer"
                             className="text-xs font-medium shrink-0" style={{ color: ACCENT }}>Lihat →</a>
                         )}
                         <button type="button" onClick={() => removeFile(idx)}
@@ -407,13 +453,13 @@ export default function PengajuanPage() {
               </div>
             )}
 
-            {uploadedFiles.length < limitUpload && (
+            {selectedFiles.length < LIMIT_UPLOAD && (
               <button type="button" onClick={() => fileInputRef.current?.click()}
                 className="w-full flex items-center justify-center gap-2 p-4 rounded-xl transition-all"
                 style={{ border: '2px dashed var(--border)', color: 'var(--text-3)' }}>
                 <Upload className="w-5 h-5" />
                 <span className="text-sm font-medium">
-                  {uploadedFiles.length === 0 ? 'Pilih File / Ambil Foto' : `Tambah File (${uploadedFiles.length}/${limitUpload})`}
+                  {selectedFiles.length === 0 ? 'Pilih File / Ambil Foto' : `Tambah File (${selectedFiles.length}/${LIMIT_UPLOAD})`}
                 </span>
               </button>
             )}
@@ -446,7 +492,7 @@ export default function PengajuanPage() {
             style={{ border: '1px solid var(--border)', color: 'var(--text-2)', background: 'var(--surface)' }}>
             Batal
           </button>
-          <button type="submit" disabled={loading || uploadingCount > 0}
+          <button type="submit" disabled={loading}
             className="flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-xl text-sm font-semibold !text-white disabled:opacity-60"
             style={{ background: ACCENT }}>
             {loading

@@ -1,36 +1,12 @@
 import { getSession } from '@/lib/auth'
 import { sql } from '@/lib/db'
-import { formatCurrency, getStatusLabel } from '@/lib/utils'
-import { FileText, Clock, CheckCircle, XCircle, CheckSquare, TrendingUp } from 'lucide-react'
-import Link from 'next/link'
+import { formatCurrency } from '@/lib/utils'
+import { Clock, CheckCircle, XCircle, CheckSquare, TrendingUp } from 'lucide-react'
 import { redirect } from 'next/navigation'
-import type { Profile } from '@/types'
 import { ACCENT } from '@/lib/constants'
-
-const STATUS_CLASSES: Record<string, string> = {
-  pending: 'badge-pending',
-  approved: 'badge-approved',
-  rejected: 'badge-rejected',
-  finished: 'badge-finished',
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const cls = STATUS_CLASSES[status] ?? 'badge-pending'
-  return (
-    <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${cls}`}>
-      {getStatusLabel(status)}
-    </span>
-  )
-}
-
-type PengajuanRow = {
-  status: string
-  grand_total: string | number
-  submitted_at: string
-  no_nota: string
-  items: Array<{ nama_barang: string }> | null
-  submitted_by: string
-}
+import RecentList from './RecentList'
+import type { Profile } from '@/types'
+import type { Pengajuan } from '@/types'
 
 export default async function DashboardPage() {
   const session = await getSession()
@@ -45,16 +21,9 @@ export default async function DashboardPage() {
 
   const allPengajuan = (
     profile.role === 'user'
-      ? await sql`
-          SELECT status, grand_total, submitted_at, no_nota, items, submitted_by
-          FROM pengajuan WHERE submitted_by = ${session.sub}
-          ORDER BY submitted_at DESC
-        `
-      : await sql`
-          SELECT status, grand_total, submitted_at, no_nota, items, submitted_by
-          FROM pengajuan ORDER BY submitted_at DESC
-        `
-  ) as PengajuanRow[]
+      ? await sql`SELECT * FROM pengajuan WHERE submitted_by = ${session.sub} ORDER BY submitted_at DESC`
+      : await sql`SELECT * FROM pengajuan ORDER BY submitted_at DESC`
+  ) as Pengajuan[]
 
   const counts: Record<string, number> = { pending: 0, approved: 0, rejected: 0, finished: 0 }
   let totalValue = 0
@@ -76,7 +45,7 @@ export default async function DashboardPage() {
     if (profile.role === 'admin') {
       return (
         p.status === 'approved' ||
-        (p.status === 'pending' && p.submitted_by === session.sub)
+        (p.status === 'pending' && p.submitted_by === Number(session.sub))
       )
     }
 
@@ -85,7 +54,7 @@ export default async function DashboardPage() {
     }
 
     // user
-    return ['pending', 'approved'].includes(p.status) && p.submitted_by === session.sub
+    return ['pending', 'approved'].includes(p.status) && p.submitted_by === Number(session.sub)
   })
 
   return (
@@ -136,56 +105,11 @@ export default async function DashboardPage() {
       </div>
 
       {/* Recent */}
-      <div className="animate-fadeInUp stagger-3">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-base" style={{ color: 'var(--text-1)' }}>Pengajuan Terbaru</h2>
-          <Link href={historyLink} className="text-sm font-medium" style={{ color: ACCENT }}>
-            Lihat semua →
-          </Link>
-        </div>
-
-        <div className="glass rounded-xl overflow-hidden">
-          {filteredPengajuan.length > 0 ? (
-            <div>
-              {filteredPengajuan.slice(0, 5).map((p, i) => (
-                <div key={p.no_nota}
-                  className="px-4 py-3 flex items-center justify-between cursor-default"
-                  style={{ borderBottom: i < 4 ? '1px solid var(--border-soft)' : 'none' }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ background: 'var(--accent-soft)' }}>
-                      <FileText className="w-3.5 h-3.5" style={{ color: ACCENT }} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium" style={{ color: 'var(--text-1)' }}>{p.no_nota}</p>
-                      <p className="text-xs" style={{ color: 'var(--text-4)' }}>
-                        {p.items?.[0]?.nama_barang ?? '-'}
-                        {(p.items?.length ?? 0) > 1 && ` +${(p.items?.length ?? 1) - 1}`}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>
-                      {formatCurrency(Number(p.grand_total))}
-                    </span>
-                    <StatusBadge status={p.status} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-14 text-center">
-              <FileText className="w-9 h-9 mx-auto mb-3" style={{ color: 'var(--text-4)' }} />
-              <p className="text-sm font-medium" style={{ color: 'var(--text-3)' }}>Belum ada pengajuan terbaru</p>
-              {profile.role !== 'manager' && (
-                <Link href="/pengajuan" className="inline-block mt-2 text-sm" style={{ color: ACCENT }}>
-                  Buat pengajuan →
-                </Link>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+      <RecentList
+        items={filteredPengajuan}
+        historyLink={historyLink}
+        userRole={profile.role}
+      />
     </div>
   )
 }

@@ -30,7 +30,7 @@ export default function QRSignature({ value, label, size = 100 }: QRSignaturePro
     return (
       <div className="flex items-center justify-center rounded-xl"
         style={{ width: size, height: size, background: 'var(--surface-soft)', border: '1px solid var(--border)', borderStyle: 'dashed' }}>
-        <span className="text-center px-2" style={{ color: 'var(--text-4)', fontSize: '0.65rem', lineHeight: 1.4 }}>
+        <span className="text-center px-2" style={{ color: 'var(--text-4)', fontSize: '0.55rem', lineHeight: 1.4}}>
           Belum<br/>ditandatangani
         </span>
       </div>

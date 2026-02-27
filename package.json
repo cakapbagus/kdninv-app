@@ -14,6 +14,7 @@
     "cloudinary": "^2.6.1",
     "date-fns": "^4.1.0",
     "jose": "^5.9.6",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.511.0",
     "next": "^15.3.3",
     "qrcode": "^1.5.4",

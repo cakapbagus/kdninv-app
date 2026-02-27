@@ -136,36 +136,36 @@ pnpm start    # production server
 kdninv-app/
 ├── app/
 │   ├── (app)/                  # Protected routes
-│   │   ├── dashboard/          # Dashboard + statistik
-│   │   ├── pengajuan/          # Form buat pengajuan baru
-│   │   ├── history/            # Riwayat pengajuan (user)
 │   │   ├── admin/              # Panel admin/manager
+│   │   ├── dashboard/          # Dashboard + statistik
+│   │   ├── history/            # Riwayat pengajuan (user)
+│   │   ├── pengajuan/          # Form buat pengajuan baru
 │   │   ├── users/              # User management
 │   │   └── layout.tsx          # Auth check + sidebar
 │   ├── api/
 │   │   ├── auth/
+│   │   │   ├── change-password/
 │   │   │   ├── login/
 │   │   │   ├── logout/
 │   │   │   ├── me/
-│   │   │   ├── change-password/
 │   │   │   └── update-profile/ # ← Edit full_name
+│   │   ├── nota-counter/       # Generate no. nota
 │   │   ├── pengajuan/          # CRUD + [id] patch status
-│   │   ├── users/              # GET + POST + [id] DELETE/PATCH
 │   │   ├── upload/             # Cloudinary upload
-│   │   └── nota-counter/       # Generate no. nota
+│   │   └── users/              # GET + POST + [id] DELETE/PATCH
 │   ├── login/
 │   └── layout.tsx
 ├── components/
-│   ├── Sidebar.tsx             # Nav + profile pill + modals
 │   ├── DetailModal.tsx         # Detail + print + aksi status
-│   └── QRSignature.tsx
+│   ├── QRSignature.tsx
+│   └── Sidebar.tsx             # Nav + profile pill + modals
 ├── database/neon-schema.sql
 ├── lib/
 │   ├── auth.ts                 # JWT sign/verify/session
-│   ├── db.ts                   # Neon SQL client
 │   ├── cloudinary.ts
 │   ├── constants.ts            # Shared constants
-│   ├── logo-base64.ts
+│   ├── db.ts                   # Neon SQL client
+│   ├── logo-base64.ts          # Logo on printing
 │   └── utils.ts
 ├── middleware.ts                # Route protection
 ├── types/index.ts

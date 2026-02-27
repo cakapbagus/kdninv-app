@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
-    const result = await uploadToCloudinary(buffer, file.name, `kdninv/${session.sub}`)
+    const filenameOverride = formData.get('filename_override') as string | null
+    const result = await uploadToCloudinary(buffer, filenameOverride || file.name, `kdninv/${session.sub}`)
 
     return NextResponse.json({
       url: result.url,

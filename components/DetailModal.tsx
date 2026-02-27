@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Pengajuan } from '@/types'
 import { formatCurrency, formatDate, formatDateTime, getStatusLabel } from '@/lib/utils'
-import { X, ExternalLink, FileText, CheckCircle, XCircle, Image, Printer } from 'lucide-react'
+import { X, ExternalLink, FileText, CheckCircle, XCircle, Image, Printer, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
 import Img from 'next/image'
@@ -235,6 +235,39 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
     }
   }
 
+  const handleDownloadZip = async () => {
+    if (attachments.length === 0) return
+    const toastId = toast.loading('Menyiapkan ZIP...')
+    try {
+      const JSZip = (await import('jszip')).default
+      const zip = new JSZip()
+
+      await Promise.all(
+        attachments.map(async (att, idx) => {
+          const res = await fetch(att.url)
+          const blob = await res.blob()
+          const ext = att.url.split('?')[0].split('.').pop() || 'jpg'
+          const filename = att.name
+            ? att.name
+            : `lampiran_${idx + 1}.${ext}`
+          zip.file(filename, blob)
+        })
+      )
+
+      const content = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(content)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `lampiran_${p.no_nota}.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('ZIP berhasil didownload', { id: toastId })
+    } catch (err) {
+      console.error(err)
+      toast.error('Gagal membuat ZIP', { id: toastId })
+    }
+  }
+
   const items = p.items || []
   const attachments = p.files && p.files.length > 0
     ? p.files
@@ -285,7 +318,7 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
             {[
               ['Tanggal', formatDate(p.tanggal)],
               ['Divisi', p.divisi],
-              ['Pengaju', p.submitted_by_full_name || p.submitted_by_username],
+              ['Pengaju', p.submitted_by_username],
               ['Waktu Pengajuan', formatDateTime(p.submitted_at)],
             ].filter(([, v]) => v).map(([label, value], i, arr) => (
               <div key={label} className="flex justify-between px-4 py-2.5 text-sm"
@@ -294,7 +327,7 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
                   background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-soft)',
                 }}>
                 <span className="text-xs uppercase tracking-wide font-medium" style={{ color: 'var(--text-4)' }}>{label}</span>
-                <span className="font-medium" style={{ color: 'var(--text-1)' }}>{value as string}</span>
+                <span className="font-medium text-right" style={{ color: 'var(--text-1)' }}>{value as string}</span>
               </div>
             ))}
           </div>
@@ -327,7 +360,9 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
           {/* Items */}
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-3)' }}>Detail Barang</h3>
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+
+            {/* Desktop: tabel */}
+            <div className="hidden sm:block rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
               <table className="w-full text-xs">
                 <thead>
                   <tr style={{ background: 'var(--surface-soft)', borderBottom: '1px solid var(--border)' }}>
@@ -357,6 +392,30 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
                 </tfoot>
               </table>
             </div>
+
+            {/* Mobile: card per item */}
+            <div className="sm:hidden space-y-2">
+              {items.map((item, i) => (
+                <div key={i} className="rounded-xl px-4 py-3"
+                  style={{ background: 'var(--surface-soft)', border: '1px solid var(--border-soft)' }}>
+                  <p className="font-semibold text-sm mb-2" style={{ color: 'var(--text-1)' }}>{item.nama_barang}</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                    <span style={{ color: 'var(--text-4)' }}>Jumlah</span>
+                    <span style={{ color: 'var(--text-2)' }}>{item.jumlah} {item.satuan || ''}</span>
+                    <span style={{ color: 'var(--text-4)' }}>Harga Satuan</span>
+                    <span style={{ color: 'var(--text-2)' }}>{formatCurrency(item.harga)}</span>
+                    <span style={{ color: 'var(--text-4)' }}>Subtotal</span>
+                    <span className="font-semibold" style={{ color: ACCENT }}>{formatCurrency(item.total)}</span>
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-xl px-4 py-3 flex justify-between items-center"
+                style={{ background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.15)' }}>
+                <span className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--text-3)' }}>Grand Total</span>
+                <span className="font-bold text-sm" style={{ color: ACCENT }}>{formatCurrency(p.grand_total)}</span>
+              </div>
+            </div>
+
             {p.grand_total_terbilang && (
               <p className="text-xs mt-2 italic" style={{ color: 'var(--text-4)' }}>
                 Terbilang: <span className="capitalize">{p.grand_total_terbilang}</span>
@@ -367,14 +426,23 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
           {/* Attachments */}
           {attachments.length > 0 && (
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-3)' }}>
-                Lampiran ({attachments.length})
-              </h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-3)' }}>
+                  Lampiran ({attachments.length})
+                </h3>
+                {attachments.length > 1 && (
+                  <button onClick={handleDownloadZip}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium"
+                    style={{ color: ACCENT, background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.2)' }}>
+                    <Download className="w-3.5 h-3.5" />
+                    Download Lampiran (zip)
+                  </button>
+                )}
+              </div>
               <div className="space-y-2">
                 {attachments.map((att, idx) => {
                   const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(att.url)
-                  const formattedUrl = isImg ? att.url : `${att.url.replace('.pdf','')}.jpg`
-                  // const isImg = att.url.includes('/image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(att.url)
+                  const formattedUrl = isImg ? att.url : att.url.replace('.pdf','.jpg')
                   return (
                     <div key={idx} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-soft)' }}>
                       {formattedUrl && (
@@ -406,11 +474,37 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
                         <span className="text-xs flex-1 truncate" style={{ color: 'var(--text-2)' }}>
                           {att.name || `Lampiran ${idx + 1}`}
                         </span>
-                        <a href={att.url} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-xs font-medium"
-                          style={{ color: ACCENT }}>
-                          Buka <ExternalLink className="w-3 h-3" />
-                        </a>
+                        <div className="flex items-center gap-2">
+                          <a href={att.url} download={att.name || `lampiran_${idx + 1}`}
+                            className="flex items-center gap-1 text-xs font-medium"
+                            style={{ color: 'var(--text-3)' }}
+                            onClick={async e => {
+                              // Cloudinary URL lintas domain — harus fetch dulu lalu blob download
+                              e.preventDefault()
+                              try {
+                                const res = await fetch(att.url)
+                                const blob = await res.blob()
+                                const ext = att.url.split('?')[0].split('.').pop() || 'jpg'
+                                const filename = att.name || `lampiran_${idx + 1}.${ext}`
+                                const url = URL.createObjectURL(blob)
+                                const a = document.createElement('a')
+                                a.href = url
+                                a.download = filename
+                                a.click()
+                                URL.revokeObjectURL(url)
+                              } catch {
+                                toast.error('Gagal mendownload file')
+                              }
+                            }}>
+                            <Download className="w-3 h-3" />
+                            Unduh
+                          </a>
+                          <a href={att.url} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs font-medium"
+                            style={{ color: ACCENT }}>
+                            Buka <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
                       </div>
                     </div>
                   )

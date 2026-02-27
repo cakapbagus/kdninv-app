@@ -113,7 +113,7 @@ export default function Sidebar({ profile }: SidebarProps) {
 
   const handleUpdateFullName = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newFullName.trim()) { toast.error('Nama lengkap wajib diisi'); return }
+    // if (!newFullName.trim()) { toast.error('Nama lengkap wajib diisi'); return }
     if (!namePassword)       { toast.error('Password wajib diisi');     return }
     setNameLoading(true)
     try {
@@ -161,7 +161,8 @@ export default function Sidebar({ profile }: SidebarProps) {
               {localFullName}
             </p>
           ) : (
-            <p className="text-xs italic pr-5" style={{ color: 'var(--text-4)' }}>Belum ada nama lengkap</p>
+            null
+            // <p className="text-xs italic pr-5" style={{ color: 'var(--text-4)' }}>Belum ada nama lengkap</p>
           )}
           <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-3)' }}>{profile.username}</p>
           <span className={`inline-block mt-1 text-xs px-1.5 py-0.5 rounded border font-semibold ${ROLE_PILL[profile.role] ?? ''}`}>
@@ -262,11 +263,12 @@ export default function Sidebar({ profile }: SidebarProps) {
             <form onSubmit={handleUpdateFullName} className="space-y-4">
               <div>
                 <label htmlFor="fn-name" className="label-field">
-                  Nama Lengkap <span style={{ color: '#ef4444' }}>*</span>
+                  Nama Lengkap
+                  <span className="ml-1 text-xs font-normal" style={{ color: 'var(--text-4)' }}>(kosongkan untuk menghapus)</span>
                 </label>
                 <input id="fn-name" type="text" value={newFullName}
                   onChange={e => setNewFullName(e.target.value)}
-                  className="input-field" placeholder="Nama lengkap Anda" required autoComplete="name" />
+                  className="input-field" placeholder="Ketik nama atau kosongkan" autoComplete="name" />
                 <p className="text-xs mt-1" style={{ color: 'var(--text-4)' }}>
                   Nama ini akan tampil di sidebar dan tanda tangan dokumen.
                 </p>

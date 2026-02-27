@@ -23,7 +23,9 @@ export async function uploadToCloudinary(
         folder,
         resource_type: 'auto',
         use_filename: true,
-        unique_filename: true,
+        unique_filename: false,
+        overwrite: true,
+        public_id: originalName.replace(/\.[^/.]+$/, ''),
       },
       (error, result) => {
         if (error || !result) {
