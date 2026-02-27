@@ -6,6 +6,8 @@ import { Pengajuan } from '@/types'
 import { FileText } from 'lucide-react'
 import DetailModal from '@/components/DetailModal'
 import { ACCENT } from '@/lib/constants'
+import EditModal from '@/components/EditModal'
+import { Pencil } from 'lucide-react'
 
 function StatusBadge({ status }: { status: string }) {
   const cls = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected', finished: 'badge-finished' }[status] || 'badge-pending'
@@ -16,6 +18,7 @@ export default function HistoryPage() {
   const [pengajuan, setPengajuan] = useState<Pengajuan[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Pengajuan | null>(null)
+  const [editTarget, setEditTarget] = useState<Pengajuan | null>(null)
 
   const load = async () => {
     setLoading(true)
@@ -48,19 +51,20 @@ export default function HistoryPage() {
           </div>
         ) : (
           <>
+            {/* Desktop */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-soft)' }}>
-                    {['No. Nota', 'Barang', 'Total', 'Status', 'Tanggal Pengajuan', ''].map(h => (
-                      <th key={h} className="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider"
+                    {['No. Nota', 'Barang', 'Total', 'Status', 'Tanggal Pengajuan', '', ''].map((h, i) => (
+                      <th key={i} className="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider"
                         style={{ color: 'var(--text-3)' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {pengajuan.map((p, i) => (
-                    <tr key={p.id}
+                    <tr key={`desktop-${p.id}`}
                       className="transition-colors cursor-pointer"
                       style={{ borderBottom: i < pengajuan.length - 1 ? '1px solid var(--border-soft)' : 'none' }}
                       onClick={() => setSelected(p)}>
@@ -78,6 +82,15 @@ export default function HistoryPage() {
                       <td className="px-5 py-3.5 text-xs" style={{ color: 'var(--text-4)' }}>
                         {formatDateTime(p.submitted_at)}
                       </td>
+                      <td className="px-3 py-3.5">
+                        {['pending', 'rejected'].includes(p.status) && (
+                          <button onClick={e => { e.stopPropagation(); setEditTarget(p) }}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium"
+                            style={{ color: ACCENT, background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.2)' }}>
+                            <Pencil className="w-3 h-3" /> Edit
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -87,7 +100,7 @@ export default function HistoryPage() {
             {/* Mobile */}
             <div className="md:hidden divide-y" style={{ borderColor: 'var(--border-soft)' }}>
               {pengajuan.map(p => (
-                <div key={p.id} className="p-4 cursor-pointer" onClick={() => setSelected(p)}>
+                <div key={`mobile-${p.id}`} className="p-4 cursor-pointer" onClick={() => setSelected(p)}>
                   <div className="flex justify-between items-start mb-1">
                     <span className="font-mono text-xs font-semibold" style={{ color: ACCENT }}>{p.no_nota}</span>
                     <StatusBadge status={p.status} />
@@ -103,12 +116,27 @@ export default function HistoryPage() {
                       {formatDateTime(p.submitted_at)}
                     </span>
                   </div>
+                  {['pending', 'rejected'].includes(p.status) && (
+                    <button onClick={e => { e.stopPropagation(); setEditTarget(p) }}
+                      className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium"
+                      style={{ color: ACCENT, background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.2)' }}>
+                      <Pencil className="w-3 h-3" /> Edit Pengajuan
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
           </>
         )}
       </div>
+
+      {editTarget && (
+        <EditModal
+          pengajuan={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSuccess={load}
+        />
+      )}
 
       {selected && (
         <DetailModal

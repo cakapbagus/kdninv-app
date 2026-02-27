@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import { Pengajuan } from '@/types'
 import { formatCurrency, formatDate, formatDateTime, formatTime, getStatusLabel } from '@/lib/utils'
-import { X, ExternalLink, FileText, CheckCircle, XCircle, Image, Printer, Download } from 'lucide-react'
+import { X, ExternalLink, FileText, CheckCircle, XCircle, Image, Printer, Download, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
 import Img from 'next/image'
 import { KODEIN_LOGO_BASE64 } from '@/lib/logo-base64'
 import { ACCENT } from '@/lib/constants'
+import EditModal from '@/components/EditModal'
 
 const QRSignature = dynamic(() => import('@/components/QRSignature'), { ssr: false })
 
@@ -193,6 +194,7 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
   const [showRejectForm, setShowRejectForm] = useState(false)
   const [showAttachment, setShowAttachment] = useState(false)
   const [printing, setPrinting] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
 
   const handleAction = async (action: 'approved' | 'rejected' | 'finished') => {
     setLoading(action)
@@ -291,6 +293,17 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
             <StatusBadge status={p.status} />
           </div>
           <div className="flex items-center gap-2">
+            {['pending', 'rejected'].includes(p.status) && (
+              <button
+                onClick={e => { e.stopPropagation(); setShowEdit(true) }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
+                style={{ background: 'var(--surface-soft)', color: 'var(--text-2)', border: '1px solid var(--border)' }}
+                title="Edit Pengajuan"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Edit
+              </button>
+            )}
             <button
               onClick={e => { e.stopPropagation(); handlePrint() }}
               disabled={printing}
@@ -360,8 +373,8 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
             <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-3)' }}>Detail Barang</h3>
 
             {/* Desktop: tabel */}
-            <div className="hidden sm:block rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-              <table className="w-full text-xs">
+            <div className="hidden sm:block rounded-xl overflow-hidden overflow-x-auto" style={{ border: '1px solid var(--border)' }}>
+              <table className="w-full text-xs" style={{ minWidth: '420px' }}>
                 <thead>
                   <tr style={{ background: 'var(--surface-soft)', borderBottom: '1px solid var(--border)' }}>
                     {['Nama', 'Jml', 'Satuan', 'Harga', 'Subtotal'].map(h => (
@@ -373,11 +386,11 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
                 <tbody>
                   {items.map((item, i) => (
                     <tr key={i} style={{ borderBottom: i < items.length - 1 ? '1px solid var(--border-soft)' : 'none' }}>
-                      <td className="px-3 py-2.5 font-medium" style={{ color: 'var(--text-1)' }}>{item.nama_barang}</td>
-                      <td className="px-3 py-2.5" style={{ color: 'var(--text-2)' }}>{item.jumlah}</td>
-                      <td className="px-3 py-2.5" style={{ color: 'var(--text-3)' }}>{item.satuan || '-'}</td>
-                      <td className="px-3 py-2.5" style={{ color: 'var(--text-2)' }}>{formatCurrency(item.harga)}</td>
-                      <td className="px-3 py-2.5 font-semibold" style={{ color: ACCENT }}>{formatCurrency(item.total)}</td>
+                      <td className="px-3 py-2.5 font-medium" style={{ color: 'var(--text-1)', wordBreak: 'break-word', minWidth: '120px' }}>{item.nama_barang}</td>
+                      <td className="px-3 py-2.5 text-right" style={{ color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{item.jumlah}</td>
+                      <td className="px-3 py-2.5" style={{ color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{item.satuan || '-'}</td>
+                      <td className="px-3 py-2.5 text-right" style={{ color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{formatCurrency(item.harga)}</td>
+                      <td className="px-3 py-2.5 font-semibold text-right" style={{ color: ACCENT, whiteSpace: 'nowrap' }}>{formatCurrency(item.total)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -428,14 +441,6 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
                 <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-3)' }}>
                   Lampiran ({attachments.length})
                 </h3>
-                {attachments.length > 1 && (
-                  <button onClick={handleDownloadZip}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium"
-                    style={{ color: ACCENT, background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.2)' }}>
-                    <Download className="w-3.5 h-3.5" />
-                    Download Lampiran (zip)
-                  </button>
-                )}
               </div>
               <div className="space-y-2">
                 {attachments.map((att, idx) => {
@@ -508,6 +513,16 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
                   )
                 })}
               </div>
+              <div className="flex justify-end mt-2">
+                {attachments.length > 1 && (
+                  <button onClick={handleDownloadZip}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium"
+                    style={{ color: ACCENT, background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.2)' }}>
+                    <Download className="w-3.5 h-3.5" />
+                    Download Lampiran (zip)
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -569,7 +584,6 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
                   { label: 'Manager', value: p.signature_manager },
                   { label: 'Admin', value: p.signature_admin_finish },
                 ]
-                .filter(item => !(item.label === 'Admin' && p.status === 'rejected'))
                 .map(({ label, value }) => (
                   <div key={label} className="flex flex-col items-center gap-2">
                     <QRSignature value={value || ''} label={value || ''} size={80} />
@@ -646,6 +660,14 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
           )}
         </div>
       </div>
+
+      {showEdit && (
+        <EditModal
+          pengajuan={p}
+          onClose={() => { setShowEdit(false); onClose() }}
+          onSuccess={() => { setShowEdit(false); onUpdate?.(); onClose() }}
+        />
+      )}
     </div>
   )
 }

@@ -12,11 +12,13 @@ export async function PATCH(
 
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (session.role === 'user') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { action, rejection_reason } = await req.json()
+  const body = await req.json()
+  const { action, rejection_reason } = body
   const sig = generateSignature(session.username)
   const now = new Date().toISOString()
+
+  if (session.role === 'user' && action !== 'edit') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
     if (action === 'approved') {
@@ -47,7 +49,6 @@ export async function PATCH(
           rejected_by = ${session.sub},
           rejected_by_username = ${session.username},
           rejection_reason = ${rejection_reason},
-          signature_manager = ${sig},
           updated_at = ${now}
         WHERE id = ${id}
       `
@@ -63,6 +64,50 @@ export async function PATCH(
           finished_by_username = ${session.username},
           signature_admin_finish = ${sig},
           updated_at = ${now}
+        WHERE id = ${id}
+      `
+    } else if (action === 'edit') {
+      // Hanya user yang submit pengajuan ini
+      const existing = await sql`SELECT submitted_by, status FROM pengajuan WHERE id = ${id}`
+      if (!existing.length) return NextResponse.json({ error: 'Tidak ditemukan' }, { status: 404 })
+      if (String(existing[0].submitted_by) !== String(session.sub))
+        return NextResponse.json({ error: 'Bukan pengajuan Anda' }, { status: 403 })
+      if (!['pending', 'rejected'].includes(existing[0].status))
+        return NextResponse.json({ error: 'Hanya bisa edit status menunggu atau ditolak' }, { status: 400 })
+
+      const {
+        divisi, rekening_sumber, bank_sumber, nama_sumber,
+        rekening_penerima, bank_penerima, nama_penerima,
+        items, grand_total, grand_total_terbilang,
+        files, file_url, file_public_id, file_name,keterangan
+      } = body
+
+      console.log(body)
+
+      await sql`
+        UPDATE pengajuan SET
+          status                = 'pending',
+          divisi                = ${divisi ?? null},
+          rekening_sumber       = ${rekening_sumber ?? null},
+          bank_sumber           = ${bank_sumber ?? null},
+          nama_sumber           = ${nama_sumber ?? null},
+          rekening_penerima     = ${rekening_penerima ?? null},
+          bank_penerima         = ${bank_penerima ?? null},
+          nama_penerima         = ${nama_penerima ?? null},
+          items                 = ${JSON.stringify(items)},
+          grand_total           = ${grand_total},
+          grand_total_terbilang = ${grand_total_terbilang},
+          files                 = ${JSON.stringify(files ?? [])},
+          file_url              = ${file_url ?? null},
+          file_public_id        = ${file_public_id ?? null},
+          file_name             = ${file_name ?? null},
+          submitted_at          = ${now},
+          rejection_reason      = NULL,
+          rejected_at           = NULL,
+          rejected_by           = NULL,
+          rejected_by_username  = NULL,
+          keterangan            = ${keterangan ?? null},
+          updated_at            = ${now}
         WHERE id = ${id}
       `
     } else {

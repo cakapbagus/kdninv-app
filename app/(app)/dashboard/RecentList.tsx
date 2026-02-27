@@ -9,16 +9,16 @@ import DetailModal from '@/components/DetailModal'
 import { useRouter } from 'next/navigation'
 import { ACCENT } from '@/lib/constants'
 
-const STATUS_CLASSES: Record<string, string> = {
-  pending:  'badge-pending',
-  approved: 'badge-approved',
-  rejected: 'badge-rejected',
-  finished: 'badge-finished',
-}
-
 function StatusBadge({ status }: { status: string }) {
+  const cls = {
+    pending:  'badge-pending',
+    approved: 'badge-approved',
+    rejected: 'badge-rejected',
+    finished: 'badge-finished',
+  }[status] ?? 'badge-pending'
+
   return (
-    <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${STATUS_CLASSES[status] ?? 'badge-pending'}`}>
+    <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${cls}`}>
       {getStatusLabel(status)}
     </span>
   )
@@ -50,7 +50,7 @@ export default function RecentList({ items, historyLink, userRole }: Props) {
               {/* Desktop */}
               <div className="hidden md:block">
                 {items.slice(0, 5).map((p, i) => (
-                  <div key={p.no_nota}
+                  <div key={`desktop-${p.no_nota}`}
                     onClick={() => setSelected(p)}
                     className="px-4 py-3 flex items-center justify-between cursor-pointer transition-all"
                     style={{ borderBottom: i < Math.min(items.length, 5) - 1 ? '1px solid var(--border-soft)' : 'none' }}
@@ -82,7 +82,7 @@ export default function RecentList({ items, historyLink, userRole }: Props) {
               {/* Mobile */}
               <div className="md:hidden divide-y" style={{ borderColor: 'var(--border-soft)' }}>
                 {items.slice(0, 5).map(p => (
-                  <div key={p.no_nota} className="p-4 cursor-pointer" onClick={() => setSelected(p)}>
+                  <div key={`mobile-${p.no_nota}`} className="p-4 cursor-pointer" onClick={() => setSelected(p)}>
                     <div className="flex justify-between items-start mb-1">
                       <span className="font-mono text-xs font-semibold" style={{ color: ACCENT }}>{p.no_nota}</span>
                       <StatusBadge status={p.status} />

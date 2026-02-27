@@ -158,6 +158,7 @@ kdninv-app/
 │   └── layout.tsx
 ├── components/
 │   ├── DetailModal.tsx         # Detail + print + aksi status
+│   ├── EditModal.tsx           # Edit pengajuan
 │   ├── QRSignature.tsx
 │   └── Sidebar.tsx             # Nav + profile pill + modals
 ├── database/neon-schema.sql

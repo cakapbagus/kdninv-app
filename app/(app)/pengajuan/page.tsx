@@ -7,11 +7,8 @@ import toast from 'react-hot-toast'
 import { PengajuanItem, Rekening } from '@/types'
 import { format } from 'date-fns'
 import { Plus, Trash2, CheckCircle, Upload, X, Image, FileText } from 'lucide-react'
-import dynamic from 'next/dynamic'
 import Img from 'next/image'
 import { ACCENT, MAX_UPLOAD_SIZE, ALLOWED_MIME_TYPES, LIMIT_UPLOAD } from '@/lib/constants'
-
-const QRSignature = dynamic(() => import('@/components/QRSignature'), { ssr: false })
 
 const emptyItem = (): PengajuanItem => ({ nama_barang: '', jumlah: 1, satuan: '', harga: 0, total: 0 })
 
@@ -369,9 +366,9 @@ export default function PengajuanPage() {
                   </div>
                 )}
 
-                <Field label="Rekening Sumber" placeholder="Nomor rekening" value={form.rekening_sumber} onChange={e => setForm(p => ({ ...p, rekening_sumber: e.target.value }))} />
-                <Field label="Bank Sumber" placeholder="Nama bank" value={form.bank_sumber} onChange={e => setForm(p => ({ ...p, bank_sumber: e.target.value }))} />
-                <Field label="Nama Sumber" placeholder="Nama pemilik rekening" value={form.nama_sumber} onChange={e => setForm(p => ({ ...p, nama_sumber: e.target.value }))} />
+                <Field label="Rekening Sumber" req numberOnly placeholder="Nomor rekening" value={form.rekening_sumber} onChange={e => setForm(p => ({ ...p, rekening_sumber: e.target.value }))} />
+                <Field label="Bank Sumber" req alphaOnly placeholder="Nama bank" value={form.bank_sumber} onChange={e => setForm(p => ({ ...p, bank_sumber: e.target.value }))} />
+                <Field label="Nama Sumber" req alphaOnly placeholder="Nama pemilik rekening" value={form.nama_sumber} onChange={e => setForm(p => ({ ...p, nama_sumber: e.target.value }))} />
 
                 {/* Checkbox simpan */}
                 {form.rekening_sumber && form.bank_sumber && form.nama_sumber && (
@@ -402,9 +399,9 @@ export default function PengajuanPage() {
                   </div>
                 )}
 
-                <Field label="Rekening Penerima" placeholder="Nomor rekening" value={form.rekening_penerima} onChange={e => setForm(p => ({ ...p, rekening_penerima: e.target.value }))} />
-                <Field label="Bank Penerima" placeholder="Nama bank" value={form.bank_penerima} onChange={e => setForm(p => ({ ...p, bank_penerima: e.target.value }))} />
-                <Field label="Nama Penerima" placeholder="Nama pemilik rekening" value={form.nama_penerima} onChange={e => setForm(p => ({ ...p, nama_penerima: e.target.value }))} />
+                <Field label="Rekening Penerima" req numberOnly placeholder="Nomor rekening" value={form.rekening_penerima} onChange={e => setForm(p => ({ ...p, rekening_penerima: e.target.value }))} />
+                <Field label="Bank Penerima" req alphaOnly placeholder="Nama bank" value={form.bank_penerima} onChange={e => setForm(p => ({ ...p, bank_penerima: e.target.value }))} />
+                <Field label="Nama Penerima" req alphaOnly placeholder="Nama pemilik rekening" value={form.nama_penerima} onChange={e => setForm(p => ({ ...p, nama_penerima: e.target.value }))} />
 
                 {/* Checkbox simpan */}
                 {form.rekening_penerima && form.bank_penerima && form.nama_penerima && (
@@ -573,25 +570,6 @@ export default function PengajuanPage() {
                 </span>
               </button>
             )}
-          </Section>
-        </div>
-
-        {/* QR Signature */}
-        <div className="animate-fadeInUp stagger-5">
-          <Section title="Tanda Tangan">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="flex flex-col items-center gap-3">
-                <QRSignature value={signature} label={signature} size={110} />
-                <p className="text-xs text-center" style={{ color: 'var(--text-4)' }}>Tanda tangan pengaju</p>
-              </div>
-              <div className="flex flex-col items-center gap-3">
-                <QRSignature value="" label="" size={110} />
-                <p className="text-xs text-center" style={{ color: 'var(--text-4)' }}>
-                  Tanda tangan manager<br />
-                  <span style={{ color: 'var(--text-4)', fontSize: '0.7rem' }}>Diisi setelah persetujuan</span>
-                </p>
-              </div>
-            </div>
           </Section>
         </div>
 

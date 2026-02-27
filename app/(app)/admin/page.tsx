@@ -83,15 +83,27 @@ export default function AdminPage() {
           <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-3)' }}>Filter</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-field">
-            {statusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-          <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)}
-            className="input-field" placeholder="Dari tanggal" />
-          <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)}
-            className="input-field" placeholder="Sampai tanggal" />
-          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-            className="input-field" placeholder="Cari nota, barang, pengaju..." />
+          <div>
+            <p className="text-xs mb-1 font-medium" style={{ color: 'var(--text-4)' }}>Pencarian</p>
+            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+              className="input-field" placeholder="Nota, barang, pengaju..." />
+          </div>
+          <div>
+            <p className="text-xs mb-1 font-medium" style={{ color: 'var(--text-4)' }}>Status</p>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-field">
+              {statusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <p className="text-xs mb-1 font-medium" style={{ color: 'var(--text-4)' }}>Dari Tanggal</p>
+            <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)}
+              className="input-field" />
+          </div>
+          <div>
+            <p className="text-xs mb-1 font-medium" style={{ color: 'var(--text-4)' }}>Sampai Tanggal</p>
+            <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)}
+              className="input-field" />
+          </div>
         </div>
       </div>
 

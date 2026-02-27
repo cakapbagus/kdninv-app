@@ -45,7 +45,7 @@ export default async function DashboardPage() {
     { label: 'Selesai',   mine: countsMine.finished, all: counts.finished, icon: CheckSquare, bg: '#d1fae5', color: '#065f46' },
   ]
 
-  const historyLink = profile.role === 'user' ? '/history' : '/admin'
+  const historyLink = profile.role === 'manager' ? '/admin' : '/history'
 
   const filteredPengajuan = allPengajuan.filter(p => {
     if (profile.role === 'admin') {
