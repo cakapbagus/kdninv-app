@@ -2,16 +2,15 @@
 
 import { useState } from 'react'
 import { Pengajuan } from '@/types'
-import { formatCurrency, formatDate, formatDateTime, getStatusLabel } from '@/lib/utils'
+import { formatCurrency, formatDate, formatDateTime, formatTime, getStatusLabel } from '@/lib/utils'
 import { X, ExternalLink, FileText, CheckCircle, XCircle, Image, Printer, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
 import Img from 'next/image'
 import { KODEIN_LOGO_BASE64 } from '@/lib/logo-base64'
+import { ACCENT } from '@/lib/constants'
 
 const QRSignature = dynamic(() => import('@/components/QRSignature'), { ssr: false })
-
-const ACCENT = '#4f6ef7'
 
 function StatusBadge({ status }: { status: string }) {
   const cls = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected', finished: 'badge-finished' }[status] || 'badge-pending'
@@ -42,8 +41,7 @@ async function generateQRDataUrl(value: string, size = 90): Promise<string> {
 // ─── Build full print HTML string ───────────────────────────────────────────
 function buildPrintHtml(p: Pengajuan, qrUser: string, qrManager: string): string {
   const items = p.items || []
-  const MAX_ROWS = 8
-  const padded = [...items, ...Array(Math.max(0, MAX_ROWS - items.length)).fill(null)]
+  const padded = items.length > 0 ? items : [null]
 
   const qrCell = (src: string, label: string) =>
     src
@@ -317,9 +315,9 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
           <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-soft)' }}>
             {[
               ['Tanggal', formatDate(p.tanggal)],
-              ['Divisi', p.divisi],
+              ['Waktu Pengajuan', formatTime(p.submitted_at)],
               ['Pengaju', p.submitted_by_username],
-              ['Waktu Pengajuan', formatDateTime(p.submitted_at)],
+              ['Divisi', p.divisi],
             ].filter(([, v]) => v).map(([label, value], i, arr) => (
               <div key={label} className="flex justify-between px-4 py-2.5 text-sm"
                 style={{

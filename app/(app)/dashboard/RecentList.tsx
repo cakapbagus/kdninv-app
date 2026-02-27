@@ -6,8 +6,8 @@ import Link from 'next/link'
 import { formatCurrency, getStatusLabel } from '@/lib/utils'
 import type { Pengajuan } from '@/types'
 import DetailModal from '@/components/DetailModal'
-
-const ACCENT = '#4f6ef7'
+import { useRouter } from 'next/navigation'
+import { ACCENT } from '@/lib/constants'
 
 const STATUS_CLASSES: Record<string, string> = {
   pending:  'badge-pending',
@@ -32,6 +32,7 @@ interface Props {
 
 export default function RecentList({ items, historyLink, userRole }: Props) {
   const [selected, setSelected] = useState<Pengajuan | null>(null)
+  const router = useRouter()
 
   return (
     <>
@@ -124,7 +125,7 @@ export default function RecentList({ items, historyLink, userRole }: Props) {
           onClose={() => setSelected(null)}
           showActions={['admin', 'manager'].includes(userRole)}
           userRole={userRole}
-          onUpdate={() => setSelected(null)}
+          onUpdate={() => { setSelected(null); router.refresh() }}
         />
       )}
     </>

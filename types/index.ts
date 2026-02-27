@@ -1,6 +1,15 @@
 export type Role = 'user' | 'admin' | 'manager'
 export type Status = 'pending' | 'approved' | 'rejected' | 'finished'
 
+export interface Rekening {
+  id: number
+  no_rekening: string
+  bank: string
+  nama: string
+  created_by: number | null
+  created_at: string
+}
+
 export interface Profile {
   id: number
   username: string

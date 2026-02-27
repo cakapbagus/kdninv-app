@@ -25,6 +25,14 @@ export function formatDateTime(dateString: string): string {
   }
 }
 
+export function formatTime(dateString: string): string {
+  try {
+    return format(new Date(dateString), 'HH:mm:ss', { locale: id })
+  } catch {
+    return dateString
+  }
+}
+
 export function generateSignature(username: string): string {
   const now = new Date()
   const timestamp = format(now, 'dd/MM/yyyy HH:mm:ss')

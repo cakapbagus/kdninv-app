@@ -6,16 +6,16 @@ Aplikasi web manajemen pengajuan nota (bukti kas/bank keluar) berbasis Next.js 1
 
 ## Stack
 
-| Layer      | Teknologi                          |
-|------------|------------------------------------|
-| Framework  | **Next.js 15** (App Router)        |
-| React      | **React 19**                       |
-| Database   | **Neon PostgreSQL** (serverless)   |
-| Auth       | **Custom JWT** (jose + bcryptjs)   |
-| Storage    | **Cloudinary**                     |
-| Styling    | **Tailwind CSS v3** + CSS variables|
-| Language   | **TypeScript** (strict mode)       |
-| Deploy     | **Vercel**                         |
+| Layer     | Teknologi                           |
+| --------- | ----------------------------------- |
+| Framework | **Next.js 15** (App Router)         |
+| React     | **React 19**                        |
+| Database  | **Neon PostgreSQL** (serverless)    |
+| Auth      | **Custom JWT** (jose + bcryptjs)    |
+| Storage   | **Cloudinary**                      |
+| Styling   | **Tailwind CSS v3** + CSS variables |
+| Language  | **TypeScript** (strict mode)        |
+| Deploy    | **Vercel**                          |
 
 ---
 
@@ -38,13 +38,13 @@ git push -u origin main
 3. Framework preset otomatis terdeteksi sebagai **Next.js**
 4. Buka tab **Environment Variables**, isi semua variabel berikut:
 
-| Variable                    | Keterangan                                  |
-|-----------------------------|---------------------------------------------|
-| `DATABASE_URL`              | Connection string Neon PostgreSQL           |
-| `JWT_SECRET`                | String acak min. 32 karakter                |
-| `CLOUDINARY_CLOUD_NAME`     | Cloud name dari dashboard Cloudinary |
-| `CLOUDINARY_API_KEY`        | API key dari dashboard Cloudinary           |
-| `CLOUDINARY_API_SECRET`     | API secret dari dashboard Cloudinary        |
+| Variable                | Keterangan                           |
+| ----------------------- | ------------------------------------ |
+| `DATABASE_URL`          | Connection string Neon PostgreSQL    |
+| `JWT_SECRET`            | String acak min. 32 karakter         |
+| `CLOUDINARY_CLOUD_NAME` | Cloud name dari dashboard Cloudinary |
+| `CLOUDINARY_API_KEY`    | API key dari dashboard Cloudinary    |
+| `CLOUDINARY_API_SECRET` | API secret dari dashboard Cloudinary |
 
 5. Klik **Deploy**
 
@@ -113,20 +113,20 @@ pnpm start    # production server
 ## Role & Akses
 
 | Fitur                  | User | Admin | Manager |
-|------------------------|:----:|:-----:|:-------:|
-| Buat pengajuan         | ✓    | ✓     | —       |
-| Lihat history sendiri  | ✓    | ✓     | —       |
-| Admin panel            | —    | ✓     | ✓       |
-| Setujui / tolak nota   | —    | —     | ✓       |
-| Tandai selesai         | —    | ✓     | —       |
-| Print bukti kas        | ✓    | ✓     | ✓       |
-| User Management        | —    | ✓     | ✓       |
-| Buat role User         | —    | ✓     | —       |
-| Buat role Admin        | —    | —     | ✓       |
-| Hapus/reset User       | —    | ✓     | ✓       |
-| Hapus/reset Admin      | —    | —     | ✓       |
-| Edit nama lengkap      | ✓    | ✓     | ✓       |
-| Ganti password sendiri | ✓    | ✓     | ✓       |
+| ---------------------- | :--: | :---: | :-----: |
+| Buat pengajuan         |  ✓   |   ✓   |    —    |
+| Lihat history sendiri  |  ✓   |   ✓   |    —    |
+| Admin panel            |  —   |   ✓   |    ✓    |
+| Setujui / tolak nota   |  —   |   —   |    ✓    |
+| Tandai selesai         |  —   |   ✓   |    —    |
+| Print bukti kas        |  ✓   |   ✓   |    ✓    |
+| User Management        |  —   |   ✓   |    ✓    |
+| Buat role User         |  —   |   ✓   |    —    |
+| Buat role Admin        |  —   |   —   |    ✓    |
+| Hapus/reset User       |  —   |   ✓   |    ✓    |
+| Hapus/reset Admin      |  —   |   —   |    ✓    |
+| Edit nama lengkap      |  ✓   |   ✓   |    ✓    |
+| Ganti password sendiri |  ✓   |   ✓   |    ✓    |
 
 ---
 
@@ -151,6 +151,7 @@ kdninv-app/
 │   │   │   └── update-profile/ # ← Edit full_name
 │   │   ├── nota-counter/       # Generate no. nota
 │   │   ├── pengajuan/          # CRUD + [id] patch status
+│   │   ├── rekening            # CRUD sistem save rekening
 │   │   ├── upload/             # Cloudinary upload
 │   │   └── users/              # GET + POST + [id] DELETE/PATCH
 │   ├── login/
@@ -167,8 +168,8 @@ kdninv-app/
 │   ├── db.ts                   # Neon SQL client
 │   ├── logo-base64.ts          # Logo on printing
 │   └── utils.ts
-├── middleware.ts                # Route protection
-├── types/index.ts
+├── middleware.ts               # Route protection
+├── types/index.ts              # Consist defined types
 └── .env.local.example
 ```
 

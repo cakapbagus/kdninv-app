@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { generateSignature, formatCurrency, angkaTerbilang } from '@/lib/utils'
 import toast from 'react-hot-toast'
-import { PengajuanItem } from '@/types'
+import { PengajuanItem, Rekening } from '@/types'
 import { format } from 'date-fns'
 import { Plus, Trash2, CheckCircle, Upload, X, Image, FileText } from 'lucide-react'
 import dynamic from 'next/dynamic'
@@ -98,6 +98,9 @@ export default function PengajuanPage() {
     rekening_penerima: '', bank_penerima: '', nama_penerima: '',
     catatan: '',
   })
+  const [rekeningList, setRekeningList] = useState<Rekening[]>([])
+  const [saveSumber,   setSaveSumber]   = useState(false)
+  const [savePenerima, setSavePenerima] = useState(false)
 
   useEffect(() => {
     const init = async () => {
@@ -112,9 +115,20 @@ export default function PengajuanPage() {
         const { no_nota } = await noteRes.json()
         setNoNota(no_nota)
       }
+
+      const rekRes = await fetch('/api/rekening')
+      if (rekRes.ok) setRekeningList(await rekRes.json())
     }
     init()
   }, [])
+
+  const fillSumber = (r: Rekening) => setForm(p => ({
+    ...p, rekening_sumber: r.no_rekening, bank_sumber: r.bank, nama_sumber: r.nama
+  }))
+
+  const fillPenerima = (r: Rekening) => setForm(p => ({
+    ...p, rekening_penerima: r.no_rekening, bank_penerima: r.bank, nama_penerima: r.nama
+  }))
 
   const updateItem = (idx: number, field: keyof PengajuanItem, value: string | number) => {
     setItems(prev => {
@@ -251,6 +265,30 @@ export default function PengajuanPage() {
         })
       }
 
+      // Simpan rekening ke DB kalau dicentang
+      if (saveSumber && form.rekening_sumber && form.bank_sumber && form.nama_sumber) {
+        await fetch('/api/rekening', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            no_rekening: form.rekening_sumber,
+            bank: form.bank_sumber,
+            nama: form.nama_sumber,
+          }),
+        })
+      }
+      if (savePenerima && form.rekening_penerima && form.bank_penerima && form.nama_penerima) {
+        await fetch('/api/rekening', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            no_rekening: form.rekening_penerima,
+            bank: form.bank_penerima,
+            nama: form.nama_penerima,
+          }),
+        })
+      }
+
       const res = await fetch('/api/pengajuan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -273,7 +311,6 @@ export default function PengajuanPage() {
       if (!res.ok) throw new Error(submitData.error ?? 'Terjadi kesalahan')
       toast.success('Pengajuan berhasil dikirim!')
       router.push('/history')
-      // router.refresh()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Gagal mengirim pengajuan')
     } finally {
@@ -316,16 +353,67 @@ export default function PengajuanPage() {
               <div className="space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider pb-2"
                   style={{ color: 'var(--text-4)', borderBottom: '1px solid var(--border-soft)' }}>Sumber Dana</h3>
-                <Field label="Rekening Sumber" req numberOnly placeholder="Nomor rekening" value={form.rekening_sumber} onChange={e => setForm(p => ({ ...p, rekening_sumber: e.target.value }))} />
-                <Field label="Bank Sumber" req alphaOnly placeholder="Nama bank" value={form.bank_sumber} onChange={e => setForm(p => ({ ...p, bank_sumber: e.target.value }))} />
-                <Field label="Nama Sumber" req alphaOnly placeholder="Nama pemilik rekening" value={form.nama_sumber} onChange={e => setForm(p => ({ ...p, nama_sumber: e.target.value }))} />
+
+                {/* Pilih dari tersimpan */}
+                {rekeningList.length > 0 && (
+                  <div>
+                    <label className="label-field">Pilih Tersimpan</label>
+                    <select className="input-field"
+                      onChange={e => { const r = rekeningList.find(x => x.id === Number(e.target.value)); if (r) fillSumber(r) }}
+                      defaultValue="">
+                      <option value="" disabled>— Pilih rekening —</option>
+                      {rekeningList.map(r => (
+                        <option key={r.id} value={r.id}>{r.bank} · {r.nama} · {r.no_rekening}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <Field label="Rekening Sumber" placeholder="Nomor rekening" value={form.rekening_sumber} onChange={e => setForm(p => ({ ...p, rekening_sumber: e.target.value }))} />
+                <Field label="Bank Sumber" placeholder="Nama bank" value={form.bank_sumber} onChange={e => setForm(p => ({ ...p, bank_sumber: e.target.value }))} />
+                <Field label="Nama Sumber" placeholder="Nama pemilik rekening" value={form.nama_sumber} onChange={e => setForm(p => ({ ...p, nama_sumber: e.target.value }))} />
+
+                {/* Checkbox simpan */}
+                {form.rekening_sumber && form.bank_sumber && form.nama_sumber && (
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" checked={saveSumber} onChange={e => setSaveSumber(e.target.checked)}
+                      className="w-4 h-4 rounded accent-indigo-500" />
+                    <span className="text-xs" style={{ color: 'var(--text-3)' }}>Simpan rekening sumber ini</span>
+                  </label>
+                )}
               </div>
+
               <div className="space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider pb-2"
                   style={{ color: 'var(--text-4)', borderBottom: '1px solid var(--border-soft)' }}>Penerima Dana</h3>
-                <Field label="Rekening Penerima" req numberOnly placeholder="Nomor rekening" value={form.rekening_penerima} onChange={e => setForm(p => ({ ...p, rekening_penerima: e.target.value }))} />
-                <Field label="Bank Penerima" req alphaOnly placeholder="Nama bank" value={form.bank_penerima} onChange={e => setForm(p => ({ ...p, bank_penerima: e.target.value }))} />
-                <Field label="Nama Penerima" req alphaOnly placeholder="Nama pemilik rekening" value={form.nama_penerima} onChange={e => setForm(p => ({ ...p, nama_penerima: e.target.value }))} />
+
+                {/* Pilih dari tersimpan */}
+                {rekeningList.length > 0 && (
+                  <div>
+                    <label className="label-field">Pilih Tersimpan</label>
+                    <select className="input-field"
+                      onChange={e => { const r = rekeningList.find(x => x.id === Number(e.target.value)); if (r) fillPenerima(r) }}
+                      defaultValue="">
+                      <option value="" disabled>— Pilih rekening —</option>
+                      {rekeningList.map(r => (
+                        <option key={r.id} value={r.id}>{r.bank} · {r.nama} · {r.no_rekening}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <Field label="Rekening Penerima" placeholder="Nomor rekening" value={form.rekening_penerima} onChange={e => setForm(p => ({ ...p, rekening_penerima: e.target.value }))} />
+                <Field label="Bank Penerima" placeholder="Nama bank" value={form.bank_penerima} onChange={e => setForm(p => ({ ...p, bank_penerima: e.target.value }))} />
+                <Field label="Nama Penerima" placeholder="Nama pemilik rekening" value={form.nama_penerima} onChange={e => setForm(p => ({ ...p, nama_penerima: e.target.value }))} />
+
+                {/* Checkbox simpan */}
+                {form.rekening_penerima && form.bank_penerima && form.nama_penerima && (
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" checked={savePenerima} onChange={e => setSavePenerima(e.target.checked)}
+                      className="w-4 h-4 rounded accent-indigo-500" />
+                    <span className="text-xs" style={{ color: 'var(--text-3)' }}>Simpan rekening penerima ini</span>
+                  </label>
+                )}
               </div>
             </div>
           </Section>

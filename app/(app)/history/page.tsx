@@ -115,6 +115,7 @@ export default function HistoryPage() {
           pengajuan={selected}
           onClose={() => setSelected(null)}
           showActions={false}
+          onUpdate={load}
         />
       )}
     </div>
