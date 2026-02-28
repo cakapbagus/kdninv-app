@@ -67,7 +67,6 @@ export default function LoginPage() {
         {/* Card */}
         <div className="glass rounded-2xl p-7 animate-fadeInUp stagger-1">
           <h2 className="font-semibold text-base mb-1" style={{ color: 'var(--text-1)' }}>Masuk ke Sistem</h2>
-          <p className="text-sm mb-6" style={{ color: 'var(--text-3)' }}>Masukkan username dan password Anda</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
