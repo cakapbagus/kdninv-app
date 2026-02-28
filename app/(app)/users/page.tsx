@@ -43,7 +43,7 @@ function ResetPwModal({ user, onClose, onSuccess }: { user: UserRow; onClose: ()
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
       <div className="relative w-full max-w-sm rounded-2xl p-6"
         style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 8px 40px rgba(30,50,80,0.15)' }}
@@ -119,7 +119,7 @@ function DeleteModal({ user, onClose, onSuccess }: { user: UserRow; onClose: () 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
       <div className="relative w-full max-w-sm rounded-2xl p-6"
         style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 8px 40px rgba(30,50,80,0.15)' }}
@@ -190,7 +190,7 @@ function AddUserModal({ myRole, onClose, onSuccess }: { myRole: MyRole; onClose:
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
       <div className="relative w-full max-w-sm rounded-2xl p-6"
         style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 8px 40px rgba(30,50,80,0.15)' }}

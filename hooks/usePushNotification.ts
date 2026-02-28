@@ -74,7 +74,7 @@ export function usePushNotification() {
       if (!res.ok) throw new Error('Gagal menyimpan subscription')
 
       setSubscribed(true)
-      toast.success('Notifikasi berhasil diaktifkan')
+      // toast.success('Notifikasi berhasil diaktifkan')
     } catch (err) {
       console.error('Subscribe error:', err)
       toast.error('Gagal mengaktifkan notifikasi')
@@ -112,7 +112,7 @@ export function usePushNotification() {
         }
       }
       setSubscribed(false)
-      toast.success('Notifikasi dinonaktifkan')
+      // toast.success('Notifikasi dinonaktifkan')
     } catch (err) {
       console.error('Unsubscribe error:', err)
       toast.error('Gagal menonaktifkan notifikasi')

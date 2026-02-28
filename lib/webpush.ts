@@ -17,16 +17,26 @@ export interface PushPayload {
 }
 
 // Kirim notif ke semua subscriber dengan role tertentu
-export async function sendPushToRoles(roles: string[], payload: PushPayload) {
+export async function sendPushToRoles(roles: string[], payload: PushPayload, options?: { excludeUserIds?: number[] }) {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return
 
   try {
-    const subs = await sql`
-      SELECT ps.endpoint, ps.p256dh, ps.auth
-      FROM push_subscriptions ps
-      JOIN users u ON u.id = ps.user_id
-      WHERE u.role = ANY(${roles})
-    `
+    const exclude = options?.excludeUserIds ?? []
+
+    const subs = exclude.length > 0
+      ? await sql`
+        SELECT ps.endpoint, ps.p256dh, ps.auth
+        FROM push_subscriptions ps
+        JOIN users u ON u.id = ps.user_id
+        WHERE u.role = ANY(${roles})
+        AND u.id != ALL(${exclude})
+      `
+      : await sql`
+        SELECT ps.endpoint, ps.p256dh, ps.auth
+        FROM push_subscriptions ps
+        JOIN users u ON u.id = ps.user_id
+        WHERE u.role = ANY(${roles})
+      `
 
     const results = await Promise.allSettled(
       subs.map(sub =>
@@ -57,15 +67,25 @@ export async function sendPushToRoles(roles: string[], payload: PushPayload) {
 }
 
 // Kirim notif ke user tertentu
-export async function sendPushToUser(userId: string | number, payload: PushPayload) {
+export async function sendPushToUser(userId: string | number, payload: PushPayload, options?: { excludeRoles?: string[] }) {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return
 
   try {
-    const subs = await sql`
-      SELECT endpoint, p256dh, auth
-      FROM push_subscriptions
-      WHERE user_id = ${userId}
-    `
+    const exclude = options?.excludeRoles ?? []
+
+    const subs = exclude.length > 0
+      ? await sql`
+          SELECT ps.endpoint, ps.p256dh, ps.auth
+          FROM push_subscriptions ps
+          JOIN users u ON u.id = ps.user_id
+          WHERE ps.user_id = ${userId}
+          AND u.role != ALL(${exclude})
+        `
+      : await sql`
+          SELECT endpoint, p256dh, auth
+          FROM push_subscriptions
+          WHERE user_id = ${userId}
+        `
 
     const results = await Promise.allSettled(
       subs.map(sub =>

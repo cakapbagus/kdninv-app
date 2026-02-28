@@ -50,7 +50,7 @@ export async function PATCH(
           title: '📬 Nota Menunggu Diselesaikan',
           body: `Nota ${rows[0].no_nota} telah disetujui oleh ${approverName}, siap untuk ditandai selesai`,
           url: '/dashboard',
-        }).catch(() => {})
+        },{ excludeUserIds: [rows[0].submitted_by] }).catch(() => {})
       }
 
     } 
@@ -102,7 +102,7 @@ export async function PATCH(
           title: '🎉 Pengajuan Selesai',
           body: `Nota ${rows[0].no_nota} telah diselesaikan oleh ${session.username}`,
           url: '/history',
-        }).catch(() => {})
+        },{ excludeRoles: ['admin'] }).catch(() => {})
       }
 
     } 

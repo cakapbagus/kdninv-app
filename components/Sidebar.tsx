@@ -10,10 +10,9 @@ import {
   FileText, LayoutDashboard, ClipboardList, History,
   Shield, LogOut, Menu, X, ChevronRight,
   KeyRound, Eye, EyeOff, Users, Settings,
+  Bell, BellOff,
 } from 'lucide-react'
-import dynamic from 'next/dynamic'
-
-const NotificationToggle = dynamic(() => import('@/components/NotificationToggle'), { ssr: false })
+import { usePushNotification } from '@/hooks/usePushNotification'
 
 interface SidebarProps { profile: Profile }
 
@@ -55,6 +54,9 @@ export default function Sidebar({ profile }: SidebarProps) {
 
   const [mobileOpen, setMobileOpen] = useState(false)
 
+  // ── Push notification ────────────────────────────────────────────────────
+  const { supported, subscribed, permission, loading: notifLoading, subscribe, unsubscribe } = usePushNotification()
+
   // ── Change Password modal state ──────────────────────────────────────────
   const [showPwModal,     setShowPwModal]     = useState(false)
   const [oldPassword,     setOldPassword]     = useState('')
@@ -66,12 +68,11 @@ export default function Sidebar({ profile }: SidebarProps) {
   const [pwLoading, setPwLoading] = useState(false)
 
   // ── Edit Full Name modal state ───────────────────────────────────────────
-  const [showNameModal, setShowNameModal] = useState(false)
-  const [newFullName,   setNewFullName]   = useState(profile.full_name ?? '')
-  const [namePassword,  setNamePassword]  = useState('')
-  const [showNamePw,    setShowNamePw]    = useState(false)
-  const [nameLoading,   setNameLoading]   = useState(false)
-  const [localFullName, setLocalFullName] = useState(profile.full_name ?? '')
+  const [showNameModal,  setShowNameModal]  = useState(false)
+  const [newFullName,    setNewFullName]    = useState(profile.full_name ?? '')
+  const [nameLoading,    setNameLoading]    = useState(false)
+  const [localFullName,  setLocalFullName]  = useState(profile.full_name ?? '')
+  const [pendingNotif,   setPendingNotif]   = useState(false)
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   const resetPwForm = () => {
@@ -82,7 +83,8 @@ export default function Sidebar({ profile }: SidebarProps) {
   const closePwModal = () => { resetPwForm(); setShowPwModal(false) }
 
   const openNameModal  = () => {
-    setNewFullName(localFullName); setNamePassword(''); setShowNamePw(false)
+    setNewFullName(localFullName)
+    setPendingNotif(subscribed)
     setShowNameModal(true); setMobileOpen(false)
   }
   const closeNameModal = () => setShowNameModal(false)
@@ -116,26 +118,32 @@ export default function Sidebar({ profile }: SidebarProps) {
 
   const handleUpdateFullName = async (e: React.FormEvent) => {
     e.preventDefault()
-    // if (!newFullName.trim()) { toast.error('Nama lengkap wajib diisi'); return }
-    if (!namePassword)       { toast.error('Password wajib diisi');     return }
     setNameLoading(true)
     try {
       const res = await fetch('/api/auth/update-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ full_name: newFullName.trim(), password: namePassword }),
+        body: JSON.stringify({ full_name: newFullName.trim() }),
       })
       const data: { error?: string; full_name?: string } = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Gagal')
       setLocalFullName(data.full_name ?? newFullName.trim())
-      toast.success('Nama lengkap berhasil diubah')
+      // Terapkan perubahan notifikasi
+      if (pendingNotif !== subscribed) {
+        if (pendingNotif) await subscribe()
+        else await unsubscribe()
+      }
+      toast.success('Pengaturan berhasil disimpan')
       closeNameModal()
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Gagal mengubah nama')
+      toast.error(err instanceof Error ? err.message : 'Gagal menyimpan')
     } finally { setNameLoading(false) }
   }
 
   const visibleNavItems = NAV_ITEMS.filter(i => i.roles.includes(profile.role))
+
+  // Bell icon — terang jika aktif, slate jika tidak
+  const bellColor = subscribed ? ACCENT : '#94a3b8' // slate-400
 
   function SidebarContent() {
     return (
@@ -154,26 +162,39 @@ export default function Sidebar({ profile }: SidebarProps) {
           </div>
         </div>
 
-        {/* Profile pill — klik untuk edit full_name */}
+        {/* Profile pill */}
         <button onClick={openNameModal} className="relative text-left mx-3 mt-3 px-4 py-3 rounded-xl transition-all"
           style={{ background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.1)' }}
           onMouseEnter={e => (e.currentTarget.style.border = '1px solid rgba(79,110,247,0.35)')}
           onMouseLeave={e => (e.currentTarget.style.border = '1px solid rgba(79,110,247,0.1)')}>
-          {localFullName ? (
-            <p className="text-sm font-semibold leading-tight truncate pr-5" style={{ color: 'var(--text-1)' }}>
+          {localFullName && (
+            <p className="text-sm font-semibold leading-tight truncate pr-10" style={{ color: 'var(--text-1)' }}>
               {localFullName}
             </p>
-          ) : (
-            null
-            // <p className="text-xs italic pr-5" style={{ color: 'var(--text-4)' }}>Belum ada nama lengkap</p>
           )}
-          <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-3)' }}>{profile.username}</p>
+          <p className="text-xs mt-0.5 truncate pr-10" style={{ color: 'var(--text-3)' }}>{profile.username}</p>
           <span className={`inline-block mt-1 text-xs px-1.5 py-0.5 rounded border font-semibold ${ROLE_PILL[profile.role] ?? ''}`}>
             {profile.role}
           </span>
+
+          {/* Bell icon pojok kiri bawah */}
+          {supported && (
+          <div className="absolute bottom-2 right-8 w-5 h-5 rounded-full flex items-center justify-center"
+              style={{
+                background: 'var(--surface)',
+                border: '1px solid var(--border-soft)',
+              }}>
+              {subscribed
+                ? <Bell className="w-3 h-3" style={{ color: bellColor }} />
+                : <BellOff className="w-3 h-3" style={{ color: bellColor }} />
+              }
+            </div>
+          )}
+
+          {/* Settings icon kanan bawah */}
           <div className="absolute bottom-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
             style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)' }}>
-            <Settings className="w-3 h-3" style={{ color: 'var(--text-4)' }} />
+            <Settings className="w-3 h-3" style={{ color: '#8B4513' }} />
           </div>
         </button>
 
@@ -200,7 +221,6 @@ export default function Sidebar({ profile }: SidebarProps) {
 
         {/* Bottom */}
         <div className="px-3 py-3 space-y-1" style={{ borderTop: '1px solid var(--border-soft)' }}>
-          <NotificationToggle />
           <button onClick={openPwModal}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
             style={{ color: 'var(--text-3)' }}>
@@ -236,7 +256,7 @@ export default function Sidebar({ profile }: SidebarProps) {
 
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-20" onClick={() => setMobileOpen(false)}>
+        <div className="lg:hidden fixed inset-0 z-20">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
           <div className="absolute top-14 left-0 right-0 bottom-0 overflow-y-auto"
             style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
@@ -251,15 +271,15 @@ export default function Sidebar({ profile }: SidebarProps) {
         <SidebarContent />
       </div>
 
-      {/* ── Modal: Edit Nama Lengkap ────────────────────────────────────────── */}
+      {/* ── Modal: Edit Nama Lengkap ─────────────────────────────────────────── */}
       {showNameModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={closeNameModal}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
           <div className="relative w-full max-w-sm rounded-2xl p-6"
             style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 8px 40px rgba(30,50,80,0.15)' }}
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="font-semibold" style={{ color: 'var(--text-1)' }}>Edit Nama Lengkap</h2>
+              <h2 className="font-semibold" style={{ color: 'var(--text-1)' }}>Pengaturan Akun</h2>
               <button onClick={closeNameModal} className="p-1.5 rounded-lg" style={{ color: 'var(--text-3)' }}>
                 <X className="w-4 h-4" />
               </button>
@@ -277,21 +297,54 @@ export default function Sidebar({ profile }: SidebarProps) {
                   Nama ini akan tampil di sidebar dan tanda tangan dokumen.
                 </p>
               </div>
-              <div>
-                <label htmlFor="fn-pw" className="label-field">
-                  Konfirmasi Password <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <div className="relative">
-                  <input id="fn-pw" type={showNamePw ? 'text' : 'password'} value={namePassword}
-                    onChange={e => setNamePassword(e.target.value)}
-                    className="input-field pr-10" placeholder="Masukkan password Anda"
-                    required autoComplete="current-password" />
-                  <button type="button" onClick={() => setShowNamePw(v => !v)} tabIndex={-1}
-                    className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-4)' }}>
-                    {showNamePw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+
+              {/* Notifikasi toggle */}
+              {supported && (
+                <div>
+                  <label className="label-field">Push Notifikasi</label>
+                  <button
+                    type="button"
+                    disabled={permission === 'denied'}
+                    onClick={() => setPendingNotif(v => !v)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all disabled:opacity-40"
+                    style={{
+                      background: pendingNotif ? 'var(--accent-soft)' : 'var(--surface-soft)',
+                      border: `1px solid ${pendingNotif ? 'rgba(79,110,247,0.25)' : 'var(--border-soft)'}`,
+                      color: pendingNotif ? ACCENT : '#64748b',
+                    }}
+                  >
+                    {notifLoading
+                      ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
+                      : pendingNotif
+                        ? <Bell className="w-4 h-4 shrink-0" style={{ color: ACCENT }} />
+                        : <BellOff className="w-4 h-4 shrink-0" style={{ color: '#94a3b8' }} />
+                    }
+                    <span className="flex-1 text-left">
+                      {notifLoading
+                        ? 'Memproses...'
+                        : permission === 'denied'
+                          ? 'Notifikasi diblokir browser'
+                          : pendingNotif
+                            ? 'Notifikasi aktif'
+                            : 'Notifikasi tidak aktif'}
+                    </span>
+                    {/* Toggle pill */}
+                    {permission !== 'denied' && !notifLoading && (
+                      <div className="w-9 h-5 rounded-full relative transition-colors shrink-0"
+                        style={{ background: pendingNotif ? ACCENT : '#cbd5e1' }}>
+                        <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                          style={{ left: pendingNotif ? '18px' : '2px' }} />
+                      </div>
+                    )}
                   </button>
+                  {permission === 'denied' && (
+                    <p className="text-xs mt-1" style={{ color: '#ef4444' }}>
+                      Izin notifikasi diblokir. Aktifkan di pengaturan browser.
+                    </p>
+                  )}
                 </div>
-              </div>
+              )}
+
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={closeNameModal}
                   className="flex-1 py-2.5 rounded-xl text-sm font-medium"
@@ -313,7 +366,7 @@ export default function Sidebar({ profile }: SidebarProps) {
 
       {/* ── Modal: Ganti Password ───────────────────────────────────────────── */}
       {showPwModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={closePwModal}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
           <div className="relative w-full max-w-sm rounded-2xl p-6"
             style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 8px 40px rgba(30,50,80,0.15)' }}

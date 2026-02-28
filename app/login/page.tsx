@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { Eye, EyeOff, FileText, Download } from 'lucide-react'
+import { Eye, EyeOff, FileText } from 'lucide-react'
 import { ACCENT } from '@/lib/constants'
 import InstallPWA from '@/components/InstallPWA'
 

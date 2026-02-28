@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 
 // Paths that are always public
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/manifest.webmanifest', 'manifest.json']
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/manifest.webmanifest']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -50,6 +50,6 @@ export async function middleware(request: NextRequest) {
 export const config = {
   // Match all routes except Next.js internals and static files
   matcher: [
-    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.webmanifest|manifest\\.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)',
   ],
 }
