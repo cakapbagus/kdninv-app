@@ -36,10 +36,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <RegisterSW />
           {children}
           <Toaster
-            position="top-right"
+            position="bottom-center"
+            containerStyle={{
+              bottom: 'calc(70px + env(safe-area-inset-bottom))',
+            }}
             toastOptions={{
-              style: { borderRadius: '10px', fontSize: '13px', fontWeight: 500 },
-              duration: 3500,
+              style: { borderRadius: '10px', fontSize: '12px', fontWeight: 500 },
+              duration: 1500,
             }}
           />
       </body>

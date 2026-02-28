@@ -187,8 +187,6 @@ function buildPrintHtml(p: Pengajuan, qrUser: string, qrManager: string): string
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function DetailModal({ pengajuan: p, onClose, showActions = false, userRole, onUpdate }: DetailModalProps) {
-  console.log(p.signature_user)
-
   const [loading, setLoading] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   const [showRejectForm, setShowRejectForm] = useState(false)

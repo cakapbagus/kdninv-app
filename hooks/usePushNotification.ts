@@ -28,7 +28,6 @@ export function usePushNotification() {
     setSupported(ok)
     if (ok) setPermission(Notification.permission)
 
-    // ← TAMBAH INI: pastikan SW selalu terdaftar
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {})
     }
@@ -91,12 +90,25 @@ export function usePushNotification() {
       if (reg) {
         const sub = await reg.pushManager.getSubscription()
         if (sub) {
+          // ← Simpan endpoint DULU sebelum unsubscribe
+          const endpoint = sub.endpoint
+
+          // ← Hapus dari server DULU, baru unsubscribe dari browser
+          const res = await fetch('/api/push', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint }),
+          })
+          if (!res.ok) throw new Error('Gagal hapus subscription dari server')
+
+          await sub.unsubscribe()
+        } else {
+          // Tidak ada subscription di browser, hapus semua milik user dari DB
           await fetch('/api/push', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ endpoint: sub.endpoint }),
+            body: JSON.stringify({}),
           })
-          await sub.unsubscribe()
         }
       }
       setSubscribed(false)

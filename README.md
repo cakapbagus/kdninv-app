@@ -213,8 +213,10 @@ kdninv-app/
 ├── components/
 │   ├── DetailModal.tsx         # Detail + print + aksi status + edit
 │   ├── EditModal.tsx           # Edit pengajuan
+│   ├── InstallPWA.tsx          # Fixed button to install PWA
 │   ├── NotificationToggle.tsx  # Toggle push notification di sidebar
-│   ├── QRSignature.tsx
+│   ├── QRSignature.tsx         # Generate QR for electronic signature
+│   ├── RegisterSW.tsx          # Register hook service worker
 │   └── Sidebar.tsx             # Nav + profile pill + modals
 ├── database/
 │   ├── neon-schema.sql         # Schema utama

@@ -36,22 +36,22 @@ export async function PATCH(
         WHERE id = ${id}
         RETURNING no_nota, submitted_by
       `
-      // if (rows.length > 0) {
-      //   const { sendPushToUser, sendPushToRoles } = await import('@/lib/webpush')
-      //   const approverName = session.username
-      //   // Notif ke user yang submit
-      //   sendPushToUser(rows[0].submitted_by, {
-      //     title: '✅ Pengajuan Disetujui',
-      //     body: `Nota ${rows[0].no_nota} telah disetujui oleh ${approverName}`,
-      //     url: '/dashboard',
-      //   }).catch(() => {})
-      //   // Notif ke admin agar segera ditandai selesai
-      //   sendPushToRoles(['admin'], {
-      //     title: '📬 Nota Menunggu Diselesaikan',
-      //     body: `Nota ${rows[0].no_nota} telah disetujui oleh ${approverName}, siap untuk ditandai selesai`,
-      //     url: '/dashboard',
-      //   }).catch(() => {})
-      // }
+      if (rows.length > 0) {
+        const { sendPushToUser, sendPushToRoles } = await import('@/lib/webpush')
+        const approverName = session.username
+        // Notif ke user yang submit
+        sendPushToUser(rows[0].submitted_by, {
+          title: '✅ Pengajuan Disetujui',
+          body: `Nota ${rows[0].no_nota} telah disetujui oleh ${approverName}`,
+          url: '/dashboard',
+        }).catch(() => {})
+        // Notif ke admin agar segera ditandai selesai
+        sendPushToRoles(['admin'], {
+          title: '📬 Nota Menunggu Diselesaikan',
+          body: `Nota ${rows[0].no_nota} telah disetujui oleh ${approverName}, siap untuk ditandai selesai`,
+          url: '/dashboard',
+        }).catch(() => {})
+      }
 
     } 
     else if (action === 'rejected') {
@@ -71,14 +71,14 @@ export async function PATCH(
         WHERE id = ${id}
         RETURNING no_nota, submitted_by
       `
-      // if (rows.length > 0) {
-      //   const { sendPushToUser } = await import('@/lib/webpush')
-      //   sendPushToUser(rows[0].submitted_by, {
-      //     title: '❌ Pengajuan Ditolak',
-      //     body: `Nota ${rows[0].no_nota} ditolak oleh ${session.username}. Alasan: ${rejection_reason}`,
-      //     url: '/history',
-      //   }).catch(() => {})
-      // }
+      if (rows.length > 0) {
+        const { sendPushToUser } = await import('@/lib/webpush')
+        sendPushToUser(rows[0].submitted_by, {
+          title: '❌ Pengajuan Ditolak',
+          body: `Nota ${rows[0].no_nota} ditolak oleh ${session.username}. Alasan: ${rejection_reason}`,
+          url: '/history',
+        }).catch(() => {})
+      }
 
     } 
     else if (action === 'finished') {
@@ -96,14 +96,14 @@ export async function PATCH(
         WHERE id = ${id}
         RETURNING no_nota, submitted_by
       `
-      // if (rows.length > 0) {
-      //   const { sendPushToUser } = await import('@/lib/webpush')
-      //   sendPushToUser(rows[0].submitted_by, {
-      //     title: '🎉 Pengajuan Selesai',
-      //     body: `Nota ${rows[0].no_nota} telah diselesaikan oleh ${session.username}`,
-      //     url: '/history',
-      //   }).catch(() => {})
-      // }
+      if (rows.length > 0) {
+        const { sendPushToUser } = await import('@/lib/webpush')
+        sendPushToUser(rows[0].submitted_by, {
+          title: '🎉 Pengajuan Selesai',
+          body: `Nota ${rows[0].no_nota} telah diselesaikan oleh ${session.username}`,
+          url: '/history',
+        }).catch(() => {})
+      }
 
     } 
     else if (action === 'edit') {
@@ -152,14 +152,14 @@ export async function PATCH(
         WHERE id = ${id}
         RETURNING no_nota
       `
-      // if (rows.length > 0) {
-      //   const { sendPushToRoles } = await import('@/lib/webpush')
-      //   sendPushToRoles(['manager'], {
-      //     title: '🔄 Pengajuan Diperbarui',
-      //     body: `Nota ${rows[0].no_nota} telah diperbarui oleh ${session.username} dan menunggu persetujuan`,
-      //     url: '/dashboard',
-      //   }).catch(() => {})
-      // }
+      if (rows.length > 0) {
+        const { sendPushToRoles } = await import('@/lib/webpush')
+        sendPushToRoles(['manager'], {
+          title: '🔄 Pengajuan Diperbarui',
+          body: `Nota ${rows[0].no_nota} telah diperbarui oleh ${session.username} dan menunggu persetujuan`,
+          url: '/dashboard',
+        }).catch(() => {})
+      }
 
     } 
     else {
