@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'react-hot-toast'
 import { Poppins } from 'next/font/google'
+import RegisterSW from '@/components/RegisterSW'
 import './globals.css'
 
 export const viewport: Viewport = {
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id" suppressHydrationWarning className={poppins.variable}>
       <body className="font-sans">
+          <RegisterSW />
           {children}
           <Toaster
             position="top-right"
