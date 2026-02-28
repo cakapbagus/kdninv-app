@@ -208,7 +208,8 @@ kdninv-app/
 │   │   ├── upload/             # Cloudinary upload
 │   │   └── users/              # User management API
 │   ├── login/
-│   └── layout.tsx
+│   ├── layout.tsx
+│   └── manifest.ts             # PWA manifest
 ├── components/
 │   ├── DetailModal.tsx         # Detail + print + aksi status + edit
 │   ├── EditModal.tsx           # Edit pengajuan
@@ -230,7 +231,6 @@ kdninv-app/
 │   └── webpush.ts              # Web Push helper (sendPushToUser/Roles)
 ├── public/
 │   ├── icons/                  # App icons (PWA)
-│   ├── manifest.json           # PWA manifest
 │   └── sw.js                   # Service Worker
 ├── types/index.ts
 ├── middleware.ts
