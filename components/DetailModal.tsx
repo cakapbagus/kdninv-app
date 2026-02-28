@@ -296,18 +296,18 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
             {['pending', 'rejected'].includes(p.status) && (
               <button
                 onClick={e => { e.stopPropagation(); setShowEdit(true) }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
                 style={{ background: 'var(--surface-soft)', color: 'var(--text-2)', border: '1px solid var(--border)' }}
                 title="Edit Pengajuan"
               >
                 <Pencil className="w-3.5 h-3.5" />
-                Edit
+                <span className="hidden sm:inline">Edit</span>
               </button>
             )}
             <button
               onClick={e => { e.stopPropagation(); handlePrint() }}
               disabled={printing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50"
               style={{ background: 'var(--accent-soft)', color: ACCENT, border: '1px solid rgba(79,110,247,0.25)' }}
               title="Cetak Bukti Kas / Bank Keluar"
             >
@@ -315,9 +315,9 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
                 ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                 : <Printer className="w-3.5 h-3.5" />
               }
-              {printing ? 'Menyiapkan...' : 'Print'}
+              <span className="hidden sm:inline">{printing ? 'Menyiapkan...' : 'Print'}</span>
             </button>
-            <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: 'var(--text-3)' }}>
+            <button onClick={onClose} className="p-1.5 rounded-lg shrink-0" style={{ color: 'var(--text-3)' }}>
               <X className="w-5 h-5" />
             </button>
           </div>

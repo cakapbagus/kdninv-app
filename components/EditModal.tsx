@@ -234,13 +234,13 @@ export default function EditModal({ pengajuan: p, onClose, onSuccess }: Props) {
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between rounded-t-2xl"
+        <div className="sticky top-0 z-10 px-4 sm:px-6 py-4 flex items-center justify-between rounded-t-2xl"
           style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-          <div>
-            <p className="font-mono font-semibold text-sm" style={{ color: ACCENT }}>{p.no_nota}</p>
+          <div className='min-w-0 mr-3'>
+            <p className="font-mono font-semibold text-sm truncate" style={{ color: ACCENT }}>{p.no_nota}</p>
             <p className="text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>Edit Pengajuan</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: 'var(--text-3)' }}>
+          <button onClick={onClose} className="p-1.5 rounded-lg shrink-0" style={{ color: 'var(--text-3)' }}>
             <X className="w-5 h-5" />
           </button>
         </div>
