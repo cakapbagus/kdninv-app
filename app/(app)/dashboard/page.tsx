@@ -5,6 +5,7 @@ import { Clock, CheckCircle, XCircle, CheckSquare, TrendingUp } from 'lucide-rea
 import { redirect } from 'next/navigation'
 import { ACCENT } from '@/lib/constants'
 import RecentList from './RecentList'
+import RefreshButton from './RefreshButton'
 import type { Profile } from '@/types'
 import type { Pengajuan } from '@/types'
 
@@ -65,7 +66,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-3 md:space-y-5">
-      <div className="animate-fadeInUp">
+      <div className="flex items-start justify-between animate-fadeInUp">
+        <div>
         <h1 className="text-2xl font-bold" style={{ color: 'var(--text-1)', fontFamily: "'Poppins',sans-serif" }}>
           Selamat datang, <span style={{ color: ACCENT }}>{profile.username}</span>
         </h1>
@@ -74,6 +76,8 @@ export default async function DashboardPage() {
           {profile.role === 'admin'   && 'Kelola dan proses pengajuan nota'}
           {profile.role === 'manager' && 'Pantau dan setujui pengajuan nota'}
         </p>
+        </div>
+        <RefreshButton />
       </div>
 
       {/* Total value */}

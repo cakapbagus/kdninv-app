@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react'
 import { formatCurrency, formatDateTime, getStatusLabel } from '@/lib/utils'
 import { Pengajuan } from '@/types'
-import { FileText } from 'lucide-react'
+import { FileText, RefreshCw, Pencil } from 'lucide-react'
 import DetailModal from '@/components/DetailModal'
 import { ACCENT } from '@/lib/constants'
 import EditModal from '@/components/EditModal'
-import { Pencil } from 'lucide-react'
 
 function StatusBadge({ status }: { status: string }) {
   const cls = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected', finished: 'badge-finished' }[status] || 'badge-pending'
@@ -31,11 +30,19 @@ export default function HistoryPage() {
 
   return (
     <div className="space-y-5">
-      <div className="animate-fadeInUp">
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-1)', fontFamily: "'Poppins',sans-serif" }}>
-          History Pengajuan
-        </h1>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--text-3)' }}>Riwayat semua pengajuan Anda</p>
+      <div className="flex items-start justify-between animate-fadeInUp">
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-1)', fontFamily: "'Poppins',sans-serif" }}>
+            History Pengajuan
+          </h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-3)' }}>Riwayat semua pengajuan Anda</p>
+        </div>
+        <button onClick={load}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all"
+          style={{ border: '1px solid var(--border)', color: 'var(--text-2)' }}>
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
       </div>
 
       <div className="glass rounded-2xl overflow-hidden animate-fadeInUp stagger-1">
