@@ -43,13 +43,13 @@ export async function PATCH(
         sendPushToUser(rows[0].submitted_by, {
           title: '✅ Pengajuan Disetujui',
           body: `Nota ${rows[0].no_nota} telah disetujui oleh ${approverName}`,
-          url: '/history',
+          url: '/dashboard',
         }).catch(() => {})
         // Notif ke admin agar segera ditandai selesai
         sendPushToRoles(['admin'], {
           title: '📬 Nota Menunggu Diselesaikan',
           body: `Nota ${rows[0].no_nota} disetujui, siap untuk ditandai selesai`,
-          url: '/admin',
+          url: '/dashboard',
         }).catch(() => {})
       }
 
@@ -154,7 +154,7 @@ export async function PATCH(
         sendPushToRoles(['manager'], {
           title: '🔄 Pengajuan Diperbarui',
           body: `Nota ${rows[0].no_nota} telah diperbarui dan menunggu persetujuan`,
-          url: '/admin',
+          url: '/dashboard',
         }).catch(() => {})
       }
 

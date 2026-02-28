@@ -28,6 +28,11 @@ export function usePushNotification() {
     setSupported(ok)
     if (ok) setPermission(Notification.permission)
 
+    // ← TAMBAH INI: pastikan SW selalu terdaftar
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {})
+    }
+
     // Cek status subscription dari server
     fetch('/api/push')
       .then(r => r.json())
