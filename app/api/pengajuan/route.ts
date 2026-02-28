@@ -120,11 +120,10 @@ export async function POST(req: NextRequest) {
 
     // Push notif ke manager
     import('@/lib/webpush').then(({ sendPushToRoles }) => {
-      const displayName = submittedByFullName || session.username
       sendPushToRoles(["manager"], {
         title: "📋 Pengajuan Nota Baru",
-        body: `${displayName} mengajukan nota ${result[0].no_nota}`,
-        url: "/admin",
+        body: `${session.username} mengajukan nota ${result[0].no_nota}`,
+        url: "/dashboard",
       }).catch(() => {})
     })
 
