@@ -5,11 +5,15 @@ import toast from 'react-hot-toast'
 
 const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const rawData = window.atob(base64)
-  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)))
+  const buffer = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; i++) {
+    buffer[i] = rawData.charCodeAt(i)
+  }
+  return buffer
 }
 
 export function usePushNotification() {

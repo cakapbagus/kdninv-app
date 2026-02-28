@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Plus, Trash2, Upload, Image, FileText } from 'lucide-react'
+import { X, Plus, Trash2, Upload, Image as ImageIcon, FileText } from 'lucide-react'
 import Img from 'next/image'
 import toast from 'react-hot-toast'
 import { formatCurrency, angkaTerbilang } from '@/lib/utils'
@@ -360,7 +360,7 @@ export default function EditModal({ pengajuan: p, onClose, onSuccess }: Props) {
                       style={{ background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.15)' }}>
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                         style={{ background: '#fff', border: '1px solid rgba(79,110,247,0.2)' }}>
-                        {isImg ? <Image className="w-4 h-4" style={{ color: '#22c55e' }} /> : <FileText className="w-4 h-4" style={{ color: '#22c55e' }} />}
+                        {isImg ? <ImageIcon className="w-4 h-4" style={{ color: '#22c55e' }} /> : <FileText className="w-4 h-4" style={{ color: '#22c55e' }} />}
                       </div>
                       <span className="flex-1 text-sm truncate" style={{ color: 'var(--text-2)' }}>{f.name || `Lampiran ${idx + 1}`}</span>
                       <a href={f.url} target="_blank" rel="noopener noreferrer"
@@ -384,7 +384,7 @@ export default function EditModal({ pengajuan: p, onClose, onSuccess }: Props) {
                       style={{ background: 'var(--surface-soft)', border: '1px solid var(--border-soft)' }}>
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                         style={{ background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.2)' }}>
-                        {f.previewUrl ? <Image className="w-4 h-4" style={{ color: ACCENT }} /> : <FileText className="w-4 h-4" style={{ color: ACCENT }} />}
+                        {f.previewUrl ? <ImageIcon className="w-4 h-4" style={{ color: ACCENT }} /> : <FileText className="w-4 h-4" style={{ color: ACCENT }} />}
                       </div>
                       <span className="flex-1 text-sm truncate" style={{ color: 'var(--text-1)' }}>{f.file.name}</span>
                       <span className="text-xs" style={{ color: 'var(--text-4)' }}>Baru</span>

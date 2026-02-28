@@ -6,7 +6,7 @@ import { generateSignature, formatCurrency, angkaTerbilang } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { PengajuanItem, Rekening } from '@/types'
 import { format } from 'date-fns'
-import { Plus, Trash2, CheckCircle, Upload, X, Image, FileText } from 'lucide-react'
+import { Plus, Trash2, CheckCircle, Upload, X, Image as ImageIcon, FileText } from 'lucide-react'
 import Img from 'next/image'
 import { ACCENT, MAX_UPLOAD_SIZE, ALLOWED_MIME_TYPES, LIMIT_UPLOAD } from '@/lib/constants'
 
@@ -83,7 +83,6 @@ export default function PengajuanPage() {
 
   const [loading, setLoading] = useState(false)
   const [noNota, setNoNota] = useState('')
-  const [signature, setSignature] = useState('')
   const [username, setUsername] = useState('')
   const [selectedFiles, setSelectedFiles] = useState<{ file: File; previewUrl?: string }[]>([])
   const [items, setItems] = useState<PengajuanItem[]>([emptyItem()])
@@ -105,7 +104,6 @@ export default function PengajuanPage() {
       if (!res.ok) return
       const user = await res.json()
       setUsername(user.username)
-      setSignature(generateSignature(user.username))
 
       const noteRes = await fetch('/api/nota-counter')
       if (noteRes.ok) {
@@ -316,7 +314,7 @@ export default function PengajuanPage() {
   }
 
   return (
-    <div className="space-y-5 max-w-4xl">
+    <div className="space-y-3 md:space-y-5 max-w-4xl">
       <div className="animate-fadeInUp">
         <h1 className="text-2xl font-bold" style={{ color: 'var(--text-1)', fontFamily: "'Poppins',sans-serif" }}>
           Form Pengajuan
@@ -436,7 +434,7 @@ export default function PengajuanPage() {
                       <label className="label-field">Nama Barang <span style={{ color: '#ef4444' }}>*</span></label>
                       <input type="text" value={item.nama_barang}
                         onChange={e => updateItem(idx, 'nama_barang', e.target.value)}
-                        className="input-field" placeholder="Deskripsi barang atau jasa" required />
+                        className="input-field" placeholder="Deskripsi barang/jasa" required />
                     </div>
                     <div>
                       <label className="label-field">Jumlah <span style={{ color: '#ef4444' }}>*</span></label>
@@ -529,7 +527,7 @@ export default function PengajuanPage() {
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                           style={{ background: '#fff', border: '1px solid rgba(79,110,247,0.2)' }}>
                           {isImg
-                            ? <Image className="w-4 h-4" style={{ color: '#22c55e' }} />
+                            ? <ImageIcon className="w-4 h-4" style={{ color: '#22c55e' }} />
                             : <FileText className="w-4 h-4" style={{ color: '#22c55e' }} />
                           }
                         </div>

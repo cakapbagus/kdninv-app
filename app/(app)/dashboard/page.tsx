@@ -64,7 +64,7 @@ export default async function DashboardPage() {
   })
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 md:space-y-5">
       <div className="animate-fadeInUp">
         <h1 className="text-2xl font-bold" style={{ color: 'var(--text-1)', fontFamily: "'Poppins',sans-serif" }}>
           Selamat datang, <span style={{ color: ACCENT }}>{profile.username}</span>

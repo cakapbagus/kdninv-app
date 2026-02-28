@@ -2,6 +2,16 @@
   "name": "kdninv-app",
   "version": "1.0.0",
   "private": true,
+  "homepage": "https://github.com/cakapbagus/kdninv-app#readme",
+  "license": "MIT",
+  "author": {
+    "name": "Cakap Bagus Tulodo",
+    "email": "cakap.bagus@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cakapbagus/kdninv-app.git"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",

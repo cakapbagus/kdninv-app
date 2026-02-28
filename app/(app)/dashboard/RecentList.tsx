@@ -104,14 +104,28 @@ export default function RecentList({ items, historyLink, userRole }: Props) {
                   </div>
                 ))}
               </div>
+
+              <div className="mb-2 md:mb-4 text-center">
+                {userRole !== 'manager' && (
+                  <Link href="/pengajuan"
+                    className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 rounded-xl text-sm font-semibold !text-white transition-all hover:opacity-90 active:scale-95"
+                    style={{ background: `linear-gradient(135deg, ${ACCENT}, #7c3aed)`, boxShadow: `0 4px 14px rgba(79,110,247,0.4)` }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                    Buat Pengajuan
+                  </Link>
+                )}
+              </div>
             </>
           ) : (
             <div className="py-14 text-center">
               <FileText className="w-9 h-9 mx-auto mb-3" style={{ color: 'var(--text-4)' }} />
               <p className="text-sm font-medium" style={{ color: 'var(--text-3)' }}>Belum ada pengajuan terbaru</p>
               {userRole !== 'manager' && (
-                <Link href="/pengajuan" className="inline-block mt-2 text-sm" style={{ color: ACCENT }}>
-                  Buat pengajuan →
+                <Link href="/pengajuan"
+                  className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 rounded-xl text-sm font-semibold !text-white transition-all hover:opacity-90 active:scale-95"
+                  style={{ background: `linear-gradient(135deg, ${ACCENT}, #7c3aed)`, boxShadow: `0 4px 14px rgba(79,110,247,0.4)` }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                  Buat Pengajuan
                 </Link>
               )}
             </div>

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Pengajuan } from '@/types'
 import { formatCurrency, formatDate, formatDateTime, formatTime, getStatusLabel } from '@/lib/utils'
-import { X, ExternalLink, FileText, CheckCircle, XCircle, Image, Printer, Download, Pencil } from 'lucide-react'
+import { X, ExternalLink, FileText, CheckCircle, XCircle, Image as ImageIcon, Printer, Download, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
 import Img from 'next/image'
@@ -472,7 +472,7 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
                         style={{ background: 'var(--surface-soft)', borderTop: '1px solid var(--border-soft)' }}>
                         <div className="w-7 h-7 rounded-lg flex items-center justify-center"
                           style={{ background: 'var(--accent-soft)' }}>
-                          {isImg ? <Image className="w-3.5 h-3.5" style={{ color: ACCENT }} /> : <FileText className="w-3.5 h-3.5" style={{ color: ACCENT }} />}
+                          {isImg ? <ImageIcon className="w-3.5 h-3.5" style={{ color: ACCENT }} /> : <FileText className="w-3.5 h-3.5" style={{ color: ACCENT }} />}
                         </div>
                         <span className="text-xs flex-1 truncate" style={{ color: 'var(--text-2)' }}>
                           {att.name || `Lampiran ${idx + 1}`}

@@ -1,33 +1,37 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'react-hot-toast'
+import { Poppins } from 'next/font/google'
 import './globals.css'
 
+export const viewport: Viewport = {
+  themeColor: '#4144e9',
+};
+
 export const metadata: Metadata = {
-  title: 'KDNINV – Sistem Pengajuan Nota',
+  title: 'KDNINV - Sistem Pengajuan Nota',
   description: 'Sistem manajemen pengajuan nota Kodein',
-  manifest: '/manifest.json',
+  applicationName: 'KDNINV',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'KDNINV',
   },
+  icons: {
+    apple: '/apple-icon.png',
+  },
 }
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-poppins',
+  display: 'swap',
+})
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet" />
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#4f6ef7" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="KDNINV" />
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-      </head>
-      <body>
+    <html lang="id" suppressHydrationWarning className={poppins.variable}>
+      <body className="font-sans">
           {children}
           <Toaster
             position="top-right"
