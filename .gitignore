@@ -9,6 +9,9 @@ out/
 # production
 build/
 
+#testing
+.zip
+
 # environment
 .env*
 !.env.local.example
