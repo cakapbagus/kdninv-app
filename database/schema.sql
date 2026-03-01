@@ -2,8 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict 6ng4bXJs51lakvcJ2lLvxuVCePrtc65qkh2DuUBYQsxcREjLRn9KmFjqX5BwOCf
-
 -- Dumped from database version 17.8 (6108b59)
 -- Dumped by pg_dump version 17.9
 
@@ -99,6 +97,20 @@ CREATE TABLE public.pengajuan (
     submitted_by_full_name text,
     approved_by_full_name text,
     CONSTRAINT pengajuan_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'finished'::text])))
+);
+
+
+--
+-- Name: push_subscriptions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.push_subscriptions (
+    endpoint text NOT NULL,
+    user_id integer NOT NULL,
+    p256dh text NOT NULL,
+    auth text NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
 );
 
 
@@ -211,6 +223,22 @@ ALTER TABLE ONLY public.pengajuan
 
 
 --
+-- Name: push_subscriptions push_subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_subscriptions
+    ADD CONSTRAINT push_subscriptions_pkey PRIMARY KEY (endpoint);
+
+
+--
+-- Name: rekening rekening_no_bank_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rekening
+    ADD CONSTRAINT rekening_no_bank_unique UNIQUE (no_rekening, bank);
+
+
+--
 -- Name: rekening rekening_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -256,6 +284,13 @@ CREATE INDEX idx_pengajuan_submitted_by ON public.pengajuan USING btree (submitt
 
 
 --
+-- Name: idx_push_subscriptions_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_push_subscriptions_user_id ON public.push_subscriptions USING btree (user_id);
+
+
+--
 -- Name: pengajuan pengajuan_approved_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -288,6 +323,14 @@ ALTER TABLE ONLY public.pengajuan
 
 
 --
+-- Name: push_subscriptions push_subscriptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_subscriptions
+    ADD CONSTRAINT push_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: rekening rekening_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -298,6 +341,4 @@ ALTER TABLE ONLY public.rekening
 --
 -- PostgreSQL database dump complete
 --
-
-\unrestrict 6ng4bXJs51lakvcJ2lLvxuVCePrtc65qkh2DuUBYQsxcREjLRn9KmFjqX5BwOCf
 

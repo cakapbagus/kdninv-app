@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import toast from 'react-hot-toast'
 
 const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''
@@ -21,6 +21,7 @@ export function usePushNotification() {
   const [subscribed, setSubscribed]   = useState(false)
   const [permission, setPermission]   = useState<NotificationPermission>('default')
   const [loading, setLoading]         = useState(false)
+  const resolvePermissionRef = useRef<((val: string) => void) | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -32,19 +33,40 @@ export function usePushNotification() {
       navigator.serviceWorker.register('/sw.js').catch(() => {})
     }
 
-    // Cek status subscription dari server
-    fetch('/api/push')
-      .then(r => r.json())
-      .then(d => { if (d.subscribed) setSubscribed(true) })
-      .catch(() => {})
+    // Cek langsung saat mount
+    if (Notification.permission === 'granted') {
+      fetch('/api/push')
+        .then(r => r.json())
+        .then(d => { if (d.subscribed) setSubscribed(true) })
+        .catch(() => {})
+    }
+
+    // Re-check setelah 5 detik untuk menangkap autoSubscribe yang baru selesai
+    const timer = setTimeout(() => {
+      if (Notification.permission !== 'granted') return
+      fetch('/api/push')
+        .then(r => r.json())
+        .then(d => { if (d.subscribed) setSubscribed(true) })
+        .catch(() => {})
+    }, 5000)
+
+    return () => clearTimeout(timer)
   }, [])
 
   const subscribe = async () => {
     if (!supported || !VAPID_PUBLIC) return
     setLoading(true)
     try {
+      let perm = Notification.permission
+      if (perm === 'default') {
+        perm = await new Promise<string>(resolve => {
+          resolvePermissionRef.current = resolve
+          Notification.requestPermission().then(resolve)
+        }) as NotificationPermission
+        resolvePermissionRef.current = null
+      }
+
       // Minta izin notifikasi
-      const perm = await Notification.requestPermission()
       setPermission(perm)
       if (perm !== 'granted') {
         toast.error('Izin notifikasi ditolak')
@@ -121,5 +143,9 @@ export function usePushNotification() {
     }
   }
 
-  return { supported, subscribed, permission, loading, subscribe, unsubscribe }
+  const cancelPermission = () => {
+    resolvePermissionRef.current?.('default')
+  }
+
+  return { supported, subscribed, permission, loading, subscribe, unsubscribe, cancelPermission }
 }

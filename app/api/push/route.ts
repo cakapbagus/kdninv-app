@@ -8,7 +8,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const subs = await sql`
-    SELECT id FROM push_subscriptions WHERE user_id = ${session.sub}
+    SELECT endpoint FROM push_subscriptions WHERE user_id = ${session.sub}
   `
   return NextResponse.json({ subscribed: subs.length > 0 })
 }

@@ -27,6 +27,9 @@ export async function POST(req: NextRequest) {
   const rows = await sql`
     INSERT INTO rekening (no_rekening, bank, nama, created_by)
     VALUES (${no_rekening.trim()}, ${bank.trim()}, ${nama.trim()}, ${session.sub})
+    ON CONFLICT (no_rekening, bank) DO UPDATE SET
+      nama = EXCLUDED.nama,
+      created_at = NOW()
     RETURNING *
   `
   return NextResponse.json({ success: true, rekening: rows[0] })

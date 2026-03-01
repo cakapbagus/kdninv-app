@@ -65,8 +65,7 @@ Simpan hasilnya ke environment variable di atas.
 Setelah deploy, jalankan schema di [Neon SQL Editor](https://console.neon.tech):
 
 ```sql
--- Jalankan seluruh isi file database/neon-schema.sql
--- Lalu jalankan database/push-subscriptions.sql
+-- Jalankan seluruh isi file database/schema.sql
 ```
 
 Lalu buat user pertama (manager/super admin):
@@ -114,8 +113,7 @@ VAPID_EMAIL=mailto:admin@example.com
 
 1. Buat project di [neon.tech](https://neon.tech)
 2. Copy connection string ke `DATABASE_URL`
-3. Jalankan `database/neon-schema.sql` di Neon SQL Editor
-4. Jalankan `database/push-subscriptions.sql` di Neon SQL Editor
+3. Jalankan `database/schema.sql` di Neon SQL Editor
 
 ### 4. Jalankan
 
@@ -218,9 +216,7 @@ kdninv-app/
 │   ├── QRSignature.tsx         # Generate QR for electronic signature
 │   ├── RegisterSW.tsx          # Register hook service worker
 │   └── Sidebar.tsx             # Nav + profile pill + modals
-├── database/
-│   ├── neon-schema.sql         # Schema utama
-│   └── push-subscriptions.sql  # Tabel push subscriptions (PWA)
+├── database/schema.sql         # Schema utama
 ├── hooks/
 │   └── usePushNotification.ts  # Hook subscribe/unsubscribe push
 ├── lib/

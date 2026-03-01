@@ -14,6 +14,52 @@ export default function LoginPage() {
   const [loading, setLoading]         = useState(false)
   const router = useRouter()
 
+  const autoSubscribe = async () => {
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return
+      if (Notification.permission === 'denied') return
+
+      const VAPID = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''
+      if (!VAPID) return
+
+      // Kalau belum granted, minta izin dulu — dengan timeout 4.5 detik
+      let permission: string = Notification.permission
+      if (permission === 'default') {
+        const timeoutPromise = new Promise<string>(resolve =>
+          setTimeout(() => resolve('default'), 4500)
+        )
+        permission = await Promise.race([
+          Notification.requestPermission(),
+          timeoutPromise,
+        ])
+      }
+
+      if (permission !== 'granted') return
+
+      const reg = await navigator.serviceWorker.register('/sw.js')
+      await navigator.serviceWorker.ready
+
+      const oldSub = await reg.pushManager.getSubscription()
+      if (oldSub) await oldSub.unsubscribe()
+
+      const padding = '='.repeat((4 - (VAPID.length % 4)) % 4)
+      const base64 = (VAPID + padding).replace(/-/g, '+').replace(/_/g, '/')
+      const raw = window.atob(base64)
+      const key = new Uint8Array(raw.length)
+      for (let i = 0; i < raw.length; i++) key[i] = raw.charCodeAt(i)
+
+      const newSub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key })
+      const j = newSub.toJSON()
+      await fetch('/api/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: j.endpoint, keys: j.keys }),
+      })
+    } catch {
+      // Silent
+    }
+  }
+
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
@@ -25,6 +71,9 @@ export default function LoginPage() {
       })
       const data: { error?: string } = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Login gagal')
+
+      // Auto-subscribe push jika izin sudah granted
+      autoSubscribe()
 
       toast.success('Login berhasil!')
       router.push('/dashboard')

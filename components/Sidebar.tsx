@@ -53,9 +53,10 @@ export default function Sidebar({ profile }: SidebarProps) {
   const router   = useRouter()
 
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   // ── Push notification ────────────────────────────────────────────────────
-  const { supported, subscribed, permission, loading: notifLoading, subscribe, unsubscribe } = usePushNotification()
+  const { supported, subscribed, permission, loading: notifLoading, subscribe, unsubscribe, cancelPermission } = usePushNotification()
 
   // ── Change Password modal state ──────────────────────────────────────────
   const [showPwModal,     setShowPwModal]     = useState(false)
@@ -90,7 +91,27 @@ export default function Sidebar({ profile }: SidebarProps) {
   const closeNameModal = () => setShowNameModal(false)
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
+    let endpoint: string | null = null
+    try {
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration('/sw.js')
+        if (reg) {
+          const sub = await reg.pushManager.getSubscription()
+          if (sub) {
+            endpoint = sub.endpoint
+            await sub.unsubscribe()
+          }
+        }
+      }
+    } catch {
+      // Silent
+    }
+
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint }),
+    })
     toast.success('Berhasil keluar')
     router.push('/login')
     router.refresh()
@@ -179,23 +200,26 @@ export default function Sidebar({ profile }: SidebarProps) {
 
           {/* Bell icon pojok kiri bawah */}
           {supported && (
-          <div className="absolute bottom-2 right-8 w-5 h-5 rounded-full flex items-center justify-center"
+            <div className="absolute bottom-2 right-8 w-5 h-5 rounded-full flex items-center justify-center"
               style={{
                 background: 'var(--surface)',
                 border: '1px solid var(--border-soft)',
               }}>
-              {subscribed
-                ? <Bell className="w-3 h-3" style={{ color: bellColor }} />
-                : <BellOff className="w-3 h-3" style={{ color: bellColor }} />
+              {notifLoading
+                ? <span className="w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin" style={{ color: bellColor }} />
+                : subscribed
+                  ? <Bell className="w-3 h-3" style={{ color: bellColor }} />
+                  : <BellOff className="w-3 h-3" style={{ color: bellColor }} />
               }
             </div>
           )}
 
           {/* Settings icon kanan bawah */}
-          <div className="absolute bottom-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
+          <div className="absolute bottom-2 right-2 w-5 h-5 rounded-full flex items-center justify-center transition-opacity"
             style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)' }}>
             <Settings className="w-3 h-3" style={{ color: '#8B4513' }} />
           </div>
+
         </button>
 
         {/* Nav */}
@@ -227,7 +251,7 @@ export default function Sidebar({ profile }: SidebarProps) {
             <KeyRound className="w-4 h-4" />
             Ganti Password
           </button>
-          <button onClick={handleLogout}
+          <button onClick={() => { setShowLogoutConfirm(true); setMobileOpen(false) }}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
             style={{ color: '#ef4444' }}>
             <LogOut className="w-4 h-4" />
@@ -280,7 +304,7 @@ export default function Sidebar({ profile }: SidebarProps) {
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold" style={{ color: 'var(--text-1)' }}>Pengaturan Akun</h2>
-              <button onClick={closeNameModal} className="p-1.5 rounded-lg" style={{ color: 'var(--text-3)' }}>
+              <button onClick={() => { cancelPermission(); closeNameModal() }} className="p-1.5 rounded-lg" style={{ color: 'var(--text-3)' }}>
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -345,8 +369,9 @@ export default function Sidebar({ profile }: SidebarProps) {
                 </div>
               )}
 
+              {/* Button simpan / batal */}
               <div className="flex gap-3 pt-1">
-                <button type="button" onClick={closeNameModal}
+                <button type="button" onClick={() => { cancelPermission(); closeNameModal() }}
                   className="flex-1 py-2.5 rounded-xl text-sm font-medium"
                   style={{ background: 'var(--surface-soft)', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
                   Batal
@@ -394,6 +419,36 @@ export default function Sidebar({ profile }: SidebarProps) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* ── Modal: Konfirmasi Keluar ─────────────────────────────────────────── */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="relative w-full max-w-xs rounded-2xl p-6"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 8px 40px rgba(30,50,80,0.15)' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold" style={{ color: 'var(--text-1)' }}>Konfirmasi Keluar</h2>
+              <button onClick={() => setShowLogoutConfirm(false)} className="p-1.5 rounded-lg" style={{ color: 'var(--text-3)' }}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-sm mb-5" style={{ color: 'var(--text-3)' }}>
+              Yakin ingin keluar dari sistem?
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+                style={{ background: 'var(--surface-soft)', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
+                Batal
+              </button>
+              <button onClick={() => { setShowLogoutConfirm(false); handleLogout() }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold !text-white"
+                style={{ background: '#ef4444' }}>
+                Keluar
+              </button>
+            </div>
           </div>
         </div>
       )}
