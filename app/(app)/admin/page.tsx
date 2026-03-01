@@ -799,19 +799,19 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 rounded-xl animate-fadeInUp stagger-1"
-        style={{ background: 'var(--surface-soft)', border: '1px solid var(--border-soft)', width: 'fit-content' }}>
+        style={{ background: 'var(--surface-soft)', border: '1px solid var(--border-soft)' }}>
         {tabs.map(({ key, label, icon: Icon }) => {
           const active = tab === key
           return (
             <button key={key} onClick={() => setTab(key)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
               style={{
                 background: active ? 'var(--surface)' : 'transparent',
                 color: active ? ACCENT : 'var(--text-3)',
                 boxShadow: active ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
               }}>
               <Icon className="w-4 h-4" />
-              {label}
+              <span className={active ? '' : 'hidden sm:inline'}>{label}</span>
             </button>
           )
         })}

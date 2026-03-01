@@ -23,11 +23,12 @@ const ROLE_PILL: Record<string, string> = {
 }
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard',      icon: LayoutDashboard, roles: ['user', 'admin', 'manager'] },
-  { href: '/pengajuan', label: 'Form Pengajuan',  icon: ScrollText,   roles: ['user', 'admin'] },
+  { href: '/dashboard', label: 'Dashboard',       icon: LayoutDashboard, roles: ['user', 'admin', 'manager'] },
+  { href: '/pengajuan', label: 'Form Pengajuan',  icon: ScrollText,      roles: ['user', 'admin'] },
   { href: '/history',   label: 'History',         icon: History,         roles: ['user', 'admin'] },
   { href: '/admin',     label: 'Admin Panel',     icon: Shield,          roles: ['admin', 'manager'] },
 ]
+const isAdminRoute = (href: string) => href.startsWith('/admin')
 
 function PwInput({ label, value, onChange, show, toggle }: {
   label: string; value: string; onChange: (v: string) => void; show: boolean; toggle: () => void
@@ -233,6 +234,7 @@ export default function Sidebar({ profile }: SidebarProps) {
                 style={{
                   color: active ? ACCENT : 'var(--text-2)',
                   background: active ? 'var(--accent-soft)' : 'transparent',
+                  marginTop: isAdminRoute(item.href) ? '24px' : undefined
                 }}>
                 <Icon className="w-4 h-4 shrink-0" />
                 <span className="flex-1">{item.label}</span>
