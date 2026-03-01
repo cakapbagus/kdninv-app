@@ -34,3 +34,41 @@ export async function POST(req: NextRequest) {
   `
   return NextResponse.json({ success: true, rekening: rows[0] })
 }
+
+// PATCH: edit rekening (cari by no_rekening + bank dari body)
+export async function PATCH(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!['admin', 'manager'].includes(session.role))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const { no_rekening, bank, nama, new_no_rekening, new_bank } = await req.json()
+  if (!no_rekening || !bank) return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 })
+  if (!nama?.trim())         return NextResponse.json({ error: 'Nama wajib diisi' },    { status: 400 })
+
+  const rows = await sql`
+    UPDATE rekening
+    SET
+      no_rekening = ${(new_no_rekening ?? no_rekening).trim()},
+      bank        = ${(new_bank ?? bank).trim()},
+      nama        = ${nama.trim()}
+    WHERE no_rekening = ${no_rekening} AND bank = ${bank}
+    RETURNING *
+  `
+  if (!rows.length) return NextResponse.json({ error: 'Rekening tidak ditemukan' }, { status: 404 })
+  return NextResponse.json({ success: true, rekening: rows[0] })
+}
+
+// DELETE: hapus rekening by no_rekening + bank dari body
+export async function DELETE(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!['admin', 'manager'].includes(session.role))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const { no_rekening, bank } = await req.json()
+  if (!no_rekening || !bank) return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 })
+
+  await sql`DELETE FROM rekening WHERE no_rekening = ${no_rekening} AND bank = ${bank}`
+  return NextResponse.json({ success: true })
+}

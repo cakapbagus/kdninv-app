@@ -195,7 +195,6 @@ kdninv-app/
 │   │   ├── dashboard/          # Dashboard + statistik
 │   │   ├── history/            # Riwayat pengajuan
 │   │   ├── pengajuan/          # Form buat pengajuan baru
-│   │   ├── users/              # User management
 │   │   └── layout.tsx          # Auth check + sidebar
 │   ├── api/
 │   │   ├── auth/               # login, logout, me, update-profile, change-password

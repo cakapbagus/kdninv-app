@@ -4,6 +4,13 @@ import { verifyToken } from '@/lib/auth'
 // Paths that are always public
 const PUBLIC_PATHS = ['/login', '/api/auth/login', '/manifest.webmanifest']
 
+// Role-based route restrictions
+const ROLE_ROUTES: { path: string; roles: string[] }[] = [
+  { path: '/admin',    roles: ['admin', 'manager'] },
+  { path: '/pengajuan', roles: ['user', 'admin'] },
+  { path: '/history',  roles: ['user', 'admin'] },
+]
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -44,11 +51,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Role-based authorization
+  const restricted = ROLE_ROUTES.find(r => pathname.startsWith(r.path))
+  if (restricted && !restricted.roles.includes(payload.role)) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
+  }
+
   return NextResponse.next()
 }
 
 export const config = {
-  // Match all routes except Next.js internals and static files
   matcher: [
     '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)',
   ],
