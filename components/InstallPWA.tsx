@@ -46,8 +46,8 @@ export default function InstallPWA() {
   return (
     <button
       onClick={handleInstall}
-      className="fixed top-2 right-2 md:top-6 md:right-12 z-50 flex items-center gap-2 px-3 py-2 md:px-5 md:py-3 rounded-2xl
-        text-xs md:text-sm font-thin md:font-semibold !text-white shadow-lg transition-all hover:opacity-90 active:scale-95 animate-fadeInUp"
+      className="fixed top-2 right-2 sm:top-6 sm:right-12 z-50 flex items-center gap-2 px-3 py-2 sm:px-5 sm:py-3 rounded-2xl
+        text-xs sm:text-sm font-thin sm:font-semibold !text-white shadow-lg transition-all hover:opacity-90 active:scale-95 animate-fadeInUp"
       style={{
         background: `linear-gradient(135deg, ${ACCENT}, #7c3aed)`,
       }}

@@ -6,17 +6,18 @@ Aplikasi web manajemen pengajuan nota (bukti kas/bank keluar) berbasis Next.js 1
 
 ## Stack
 
-| Layer      | Teknologi                           |
-| ---------- | ----------------------------------- |
-| Framework  | **Next.js 15** (App Router)         |
-| React      | **React 19**                        |
-| Database   | **Neon PostgreSQL** (serverless)    |
-| Auth       | **Custom JWT** (jose + bcryptjs)    |
-| Storage    | **Cloudinary**                      |
-| Styling    | **Tailwind CSS v3** + CSS variables |
-| Push Notif | **Web Push API** + VAPID (web-push) |
-| Language   | **TypeScript** (strict mode)        |
-| Deploy     | **Vercel**                          |
+| Layer      | Teknologi                                  |
+| ---------- | ------------------------------------------ |
+| Framework  | **Next.js 15** (App Router)                |
+| React      | **React 19**                               |
+| Database   | **Neon PostgreSQL** (serverless)           |
+| Auth       | **Custom JWT** (jose + bcryptjs)           |
+| Security   | **Cloudflare Turnstile** (bot protection)  |
+| Storage    | **Cloudinary**                             |
+| Styling    | **Tailwind CSS v3 + CSS variables**        |
+| Push Notif | **Web Push API + VAPID** (web-push)        |
+| Language   | **TypeScript** (strict mode)               |
+| Deploy     | **Vercel**                                 |
 
 ---
 
@@ -107,6 +108,11 @@ CLOUDINARY_API_SECRET=your_api_secret
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_vapid_public_key
 VAPID_PRIVATE_KEY=your_vapid_private_key
 VAPID_EMAIL=mailto:admin@example.com
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAAA...
+TURNSTILE_SECRET_KEY=0x4AAAAAAA...
+WEBAUTHN_RP_ID=localhost
+WEBAUTHN_ORIGIN=your-website.vercel.app
+WEBAUTHN_RP_NAME=web-title
 ```
 
 ### 3. Setup Database Neon
@@ -162,7 +168,7 @@ Alur notifikasi otomatis berdasarkan aksi:
 Cara mengaktifkan notifikasi:
 
 1. Login ke app
-2. Klik tombol **"Aktifkan notifikasi"** di bagian bawah sidebar
+2. Klik tombol **"Aktifkan notifikasi"** di bagian akun
 3. Izinkan notifikasi di browser
 4. Notifikasi aktif dan tersimpan di database
 
@@ -257,7 +263,7 @@ kdninv-app/
 ## Catatan Deployment Vercel
 
 - Vercel otomatis mendeteksi Next.js — tidak perlu konfigurasi tambahan
-- Pastikan **semua 8 environment variable** diisi sebelum deploy
+- Pastikan **semua 13 environment variable** diisi sebelum deploy
 - Gunakan **Neon** (bukan Supabase/Railway) karena driver `@neondatabase/serverless` dioptimalkan untuk environment serverless/edge
 - Cloudinary free tier cukup untuk penggunaan internal (25 GB storage, 25 GB bandwidth/bulan)
 - Service Worker hanya aktif di **HTTPS** — push notification tidak berjalan di `localhost` tanpa flag khusus browser

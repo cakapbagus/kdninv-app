@@ -48,7 +48,7 @@ export default function RecentList({ items, historyLink, userRole }: Props) {
           {items.length > 0 ? (
             <>
               {/* Desktop */}
-              <div className="hidden md:block">
+              <div className="hidden sm:block">
                 {items.slice(0, 5).map((p, i) => (
                   <div key={`desktop-${p.no_nota}`}
                     onClick={() => setSelected(p)}
@@ -80,7 +80,7 @@ export default function RecentList({ items, historyLink, userRole }: Props) {
               </div>
 
               {/* Mobile */}
-              <div className="md:hidden divide-y" style={{ borderColor: 'var(--border-soft)' }}>
+              <div className="sm:hidden divide-y" style={{ borderColor: 'var(--border-soft)' }}>
                 {items.slice(0, 5).map(p => (
                   <div key={`mobile-${p.no_nota}`} className="p-4 cursor-pointer" onClick={() => setSelected(p)}>
                     <div className="flex justify-between items-start mb-1">
@@ -105,7 +105,7 @@ export default function RecentList({ items, historyLink, userRole }: Props) {
                 ))}
               </div>
 
-              <div className="mb-2 md:mb-4 text-center">
+              <div className="mb-2 sm:mb-4 text-center">
                 {userRole !== 'manager' && (
                   <Link href="/pengajuan"
                     className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 rounded-xl text-sm font-semibold !text-white transition-all hover:opacity-90 active:scale-95"

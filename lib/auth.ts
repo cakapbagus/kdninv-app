@@ -8,10 +8,13 @@ const JWT_SECRET = new TextEncoder().encode(
 
 const COOKIE_NAME = 'kdninv_session'
 
-export async function signToken(payload: JWTPayload): Promise<string> {
+export const SESSION_REMEMBER  = 60 * 60 * 24 * 30  // 30 hari (detik)
+export const SESSION_DEFAULT   = 60 * 60 * 8        // 8 jam (detik)
+
+export async function signToken(payload: JWTPayload, expiresIn = '24h'): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('7d')
+    .setExpirationTime(expiresIn)
     .setIssuedAt()
     .sign(JWT_SECRET)
 }
@@ -20,9 +23,9 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET)
     return {
-      sub: payload['sub'] as string,
+      sub:      payload['sub']      as string,
       username: payload['username'] as string,
-      role: payload['role'] as Role,
+      role:     payload['role']     as Role,
     }
   } catch {
     return null

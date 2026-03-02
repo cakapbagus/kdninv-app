@@ -253,7 +253,7 @@ export default function EditModal({ pengajuan: p, onClose, onSuccess }: Props) {
 
           {/* Transfer */}
           <Section title="Informasi Transfer">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider pb-2"
                   style={{ color: 'var(--text-4)', borderBottom: '1px solid var(--border-soft)' }}>Sumber Dana</h4>

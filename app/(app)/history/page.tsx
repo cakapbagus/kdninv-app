@@ -59,7 +59,7 @@ export default function HistoryPage() {
         ) : (
           <>
             {/* Desktop */}
-            <div className="hidden md:block overflow-x-auto">
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-soft)' }}>
@@ -105,7 +105,7 @@ export default function HistoryPage() {
             </div>
 
             {/* Mobile */}
-            <div className="md:hidden divide-y" style={{ borderColor: 'var(--border-soft)' }}>
+            <div className="sm:hidden divide-y" style={{ borderColor: 'var(--border-soft)' }}>
               {pengajuan.map(p => (
                 <div key={`mobile-${p.id}`} className="p-4 cursor-pointer" onClick={() => setSelected(p)}>
                   <div className="flex justify-between items-start mb-1">

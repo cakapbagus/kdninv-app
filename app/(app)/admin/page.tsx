@@ -459,7 +459,7 @@ function TabPengajuan({ onSelect, refreshKey }: { onSelect: (p: Pengajuan) => vo
           </div>
         ) : (
           <>
-            <div className="hidden md:block overflow-x-auto">
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-soft)' }}>
@@ -486,7 +486,7 @@ function TabPengajuan({ onSelect, refreshKey }: { onSelect: (p: Pengajuan) => vo
                 </tbody>
               </table>
             </div>
-            <div className="md:hidden divide-y" style={{ borderColor: 'var(--border-soft)' }}>
+            <div className="sm:hidden divide-y" style={{ borderColor: 'var(--border-soft)' }}>
               {filtered.map(p => (
                 <div key={p.id} className="p-4 cursor-pointer" onClick={() => onSelect(p)}>
                   <div className="flex justify-between items-start mb-1">
@@ -551,7 +551,7 @@ function TabRekening({ onAdd, onEdit, onDelete, refreshKey }: {
           </div>
         ) : (
           <>
-            <div className="hidden md:block overflow-x-auto">
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-soft)' }}>
@@ -586,7 +586,7 @@ function TabRekening({ onAdd, onEdit, onDelete, refreshKey }: {
                 </tbody>
               </table>
             </div>
-            <div className="md:hidden divide-y" style={{ borderColor: 'var(--border-soft)' }}>
+            <div className="sm:hidden divide-y" style={{ borderColor: 'var(--border-soft)' }}>
               {rekening.map(r => (
                 <div key={`${r.no_rekening}-${r.bank}`} className="p-4">
                   <div className="flex items-start justify-between">
@@ -676,7 +676,7 @@ function TabUser({ myRole, onResetPw, onDelete, onAdd, refreshKey }: {
           </div>
         ) : (
           <>
-            <div className="hidden md:block overflow-x-auto">
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-soft)' }}>
@@ -717,7 +717,7 @@ function TabUser({ myRole, onResetPw, onDelete, onAdd, refreshKey }: {
                 </tbody>
               </table>
             </div>
-            <div className="md:hidden divide-y" style={{ borderColor: 'var(--border-soft)' }}>
+            <div className="sm:hidden divide-y" style={{ borderColor: 'var(--border-soft)' }}>
               {users.map(u => (
                 <div key={u.id} className="p-4">
                   <div className="flex items-start justify-between">
@@ -789,7 +789,6 @@ export default function AdminPage() {
       <div className="animate-fadeInUp">
         <h1 className="text-2xl font-bold flex items-center gap-2.5"
           style={{ color: 'var(--text-1)', fontFamily: "'Poppins',sans-serif" }}>
-          <Shield className="w-6 h-6" style={{ color: ACCENT }} />
           Admin Panel
         </h1>
         <p className="text-sm mt-0.5" style={{ color: 'var(--text-3)' }}>

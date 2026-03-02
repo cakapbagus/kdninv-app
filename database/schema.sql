@@ -96,6 +96,7 @@ CREATE TABLE public.pengajuan (
     files jsonb,
     submitted_by_full_name text,
     approved_by_full_name text,
+    finish_files jsonb DEFAULT '[]'::jsonb,
     CONSTRAINT pengajuan_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'finished'::text])))
 );
 
@@ -185,6 +186,31 @@ ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
 
 
 --
+-- Name: webauthn_challenges; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.webauthn_challenges (
+    user_id integer NOT NULL,
+    challenge text NOT NULL,
+    expires_at timestamp with time zone NOT NULL
+);
+
+
+--
+-- Name: webauthn_credentials; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.webauthn_credentials (
+    credential_id text NOT NULL,
+    user_id integer NOT NULL,
+    public_key text NOT NULL,
+    counter integer DEFAULT 0 NOT NULL,
+    transports text DEFAULT '[]'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: rekening id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -263,6 +289,22 @@ ALTER TABLE ONLY public.users
 
 
 --
+-- Name: webauthn_challenges webauthn_challenges_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.webauthn_challenges
+    ADD CONSTRAINT webauthn_challenges_pkey PRIMARY KEY (user_id);
+
+
+--
+-- Name: webauthn_credentials webauthn_credentials_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.webauthn_credentials
+    ADD CONSTRAINT webauthn_credentials_pkey PRIMARY KEY (credential_id);
+
+
+--
 -- Name: idx_pengajuan_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -288,6 +330,13 @@ CREATE INDEX idx_pengajuan_submitted_by ON public.pengajuan USING btree (submitt
 --
 
 CREATE INDEX idx_push_subscriptions_user_id ON public.push_subscriptions USING btree (user_id);
+
+
+--
+-- Name: idx_webauthn_credentials_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_webauthn_credentials_user_id ON public.webauthn_credentials USING btree (user_id);
 
 
 --
@@ -336,6 +385,22 @@ ALTER TABLE ONLY public.push_subscriptions
 
 ALTER TABLE ONLY public.rekening
     ADD CONSTRAINT rekening_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: webauthn_challenges webauthn_challenges_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.webauthn_challenges
+    ADD CONSTRAINT webauthn_challenges_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: webauthn_credentials webauthn_credentials_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.webauthn_credentials
+    ADD CONSTRAINT webauthn_credentials_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

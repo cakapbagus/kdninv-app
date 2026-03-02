@@ -65,7 +65,7 @@ export default async function DashboardPage() {
   })
 
   return (
-    <div className="space-y-3 md:space-y-5">
+    <div className="space-y-3 sm:space-y-5">
       <div className="flex items-start justify-between animate-fadeInUp">
         <div>
         <h1 className="text-2xl font-bold" style={{ color: 'var(--text-1)', fontFamily: "'Poppins',sans-serif" }}>
@@ -84,7 +84,7 @@ export default async function DashboardPage() {
       <div className={`grid grid-cols-1 gap-3 animate-fadeInUp stagger-1 ${profile.role === 'admin' ? 'sm:grid-cols-2' : ''}`}>
         {/* User: hanya milik sendiri | Manager: hanya seluruhnya | Admin: keduanya */}
         {profile.role !== 'manager' && (
-          <div className="glass rounded-2xl p-5 glow-indigo flex items-center gap-4">
+          <div className="glass rounded-2xl p-4 sm:p-5 glow-indigo flex items-center gap-4">
             <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
               style={{ background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.2)' }}>
               <TrendingUp className="w-5 h-5" style={{ color: ACCENT }} />
@@ -98,7 +98,7 @@ export default async function DashboardPage() {
           </div>
         )}
         {profile.role !== 'user' && (
-          <div className="glass rounded-2xl p-5 flex items-center gap-4">
+          <div className="glass rounded-2xl p-4 sm:p-5 flex items-center gap-4">
             <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
               style={{ background: '#f0fdf4', border: '1px solid rgba(34,197,94,0.2)' }}>
               <TrendingUp className="w-5 h-5" style={{ color: '#16a34a' }} />
@@ -118,7 +118,7 @@ export default async function DashboardPage() {
         {stats.map((s, i) => {
           const Icon = s.icon
           return (
-            <div key={s.label} className={`glass rounded-xl p-4 animate-fadeInUp stagger-${i + 2}`}>
+            <div key={s.label} className={`glass rounded-xl p-2.5 sm:p-4 animate-fadeInUp stagger-${i + 2}`}>
               <div className="flex items-center justify-between mb-2">
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: s.bg }}>
                   <Icon className="w-4 h-4" style={{ color: s.color }} />

@@ -314,7 +314,7 @@ export default function PengajuanPage() {
   }
 
   return (
-    <div className="space-y-3 md:space-y-5 max-w-4xl">
+    <div className="space-y-3 sm:space-y-5 max-w-4xl">
       <div className="animate-fadeInUp">
         <h1 className="text-2xl font-bold" style={{ color: 'var(--text-1)', fontFamily: "'Poppins',sans-serif" }}>
           Form Pengajuan
@@ -322,11 +322,11 @@ export default function PengajuanPage() {
         <p className="text-sm mt-0.5" style={{ color: 'var(--text-3)' }}>Buat nota pengajuan baru</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-5">
         {/* Informasi Nota */}
         <div className="animate-fadeInUp stagger-1">
           <Section title="Informasi Nota">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
               <div>
                 <label className="label-field">No. Nota</label>
                 <div className="input-field font-mono font-semibold cursor-not-allowed select-none"
@@ -344,8 +344,8 @@ export default function PengajuanPage() {
         {/* Informasi Transfer */}
         <div className="animate-fadeInUp stagger-2">
           <Section title="Informasi Transfer">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-2 sm:space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider pb-2"
                   style={{ color: 'var(--text-4)', borderBottom: '1px solid var(--border-soft)' }}>Sumber Dana</h3>
 
@@ -429,8 +429,8 @@ export default function PengajuanPage() {
                     </button>
                   )}
                   <p className="text-xs font-semibold mb-3" style={{ color: 'var(--text-4)' }}>Barang {idx + 1}</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="md:col-span-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="sm:col-span-2">
                       <label className="label-field">Nama Barang <span style={{ color: '#ef4444' }}>*</span></label>
                       <input type="text" value={item.nama_barang}
                         onChange={e => updateItem(idx, 'nama_barang', e.target.value)}
