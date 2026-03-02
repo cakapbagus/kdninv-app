@@ -39,16 +39,16 @@ git push -u origin main
 3. Framework preset otomatis terdeteksi sebagai **Next.js**
 4. Buka tab **Environment Variables**, isi semua variabel berikut:
 
-| Variable                       | Keterangan                             |
-| ------------------------------ | -------------------------------------- |
-| `DATABASE_URL`                 | Connection string Neon PostgreSQL      |
-| `JWT_SECRET`                   | String acak min. 32 karakter           |
-| `CLOUDINARY_CLOUD_NAME`        | Cloud name dari dashboard Cloudinary   |
-| `CLOUDINARY_API_KEY`           | API key dari dashboard Cloudinary      |
-| `CLOUDINARY_API_SECRET`        | API secret dari dashboard Cloudinary   |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | VAPID public key untuk push notifikasi |
-| `VAPID_PRIVATE_KEY`            | VAPID private key untuk push notifikasi|
-| `VAPID_EMAIL`                  | Email VAPID (format: mailto:x@x.com)  |
+| Variable                       | Keterangan                              |
+| ------------------------------ | --------------------------------------- |
+| `DATABASE_URL`                 | Connection string Neon PostgreSQL       |
+| `JWT_SECRET`                   | String acak min. 32 karakter            |
+| `CLOUDINARY_CLOUD_NAME`        | Cloud name dari dashboard Cloudinary    |
+| `CLOUDINARY_API_KEY`           | API key dari dashboard Cloudinary       |
+| `CLOUDINARY_API_SECRET`        | API secret dari dashboard Cloudinary    |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | VAPID public key untuk push notifikasi  |
+| `VAPID_PRIVATE_KEY`            | VAPID private key untuk push notifikasi |
+| `VAPID_EMAIL`                  | Email VAPID (format: mailto:x@x.com)    |
 
 5. Klik **Deploy**
 
@@ -151,15 +151,16 @@ pnpm start    # production server
 
 Alur notifikasi otomatis berdasarkan aksi:
 
-| Event                           | Penerima notifikasi                              |
-| ------------------------------- | ------------------------------------------------ |
-| Pengajuan baru masuk            | Semua **Manager**                                |
-| Pengajuan disetujui Manager     | **User/Admin** yang submit + semua **Admin**     |
-| Pengajuan ditolak Manager       | **User/Admin** yang submit                       |
-| Pengajuan selesai (Admin)       | **User/Admin** yang submit                       |
-| Pengajuan diedit & re-submit    | Semua **Manager**                                |
+| Event                        | Penerima notifikasi                          |
+| ---------------------------- | -------------------------------------------- |
+| Pengajuan baru masuk         | Semua **Manager**                            |
+| Pengajuan disetujui Manager  | **User/Admin** yang submit + semua **Admin** |
+| Pengajuan ditolak Manager    | **User/Admin** yang submit                   |
+| Pengajuan selesai (Admin)    | **User/Admin** yang submit                   |
+| Pengajuan diedit & re-submit | Semua **Manager**                            |
 
 Cara mengaktifkan notifikasi:
+
 1. Login ke app
 2. Klik tombol **"Aktifkan notifikasi"** di bagian bawah sidebar
 3. Izinkan notifikasi di browser
@@ -178,6 +179,7 @@ App ini dapat di-install ke homescreen perangkat:
 - **Desktop (Chrome/Edge):** Klik ikon install di address bar
 
 Fitur PWA:
+
 - Install ke homescreen dengan ikon dan nama app
 - Tampilan fullscreen tanpa browser UI (`standalone` mode)
 - Offline shell — halaman tetap terbuka meski koneksi terputus
@@ -243,7 +245,7 @@ kdninv-app/
 - **Rekening tersimpan** — simpan rekening sumber/penerima untuk dipakai ulang di pengajuan berikutnya
 - **Tanda tangan digital** berbasis QR code — tersimpan di DB, tampil di dokumen cetak
 - **Print bukti kas/bank keluar** format A4 langsung dari browser
-- **Alur approval**: User/Admin mengajukan → Manager menyetujui/menolak → Admin menyelesaikan
+- **Alur approval**: User/Admin mengajukan → Manager menyetujui/menolak → Admin menyelesaikan dengan lampiran (opsional)
 - **Push Notification** — notif real-time saat pengajuan masuk, disetujui, ditolak, atau selesai
 - **PWA** — bisa di-install ke homescreen, offline shell, tampilan standalone
 - **User Management** CRUD lengkap dengan permission berbasis role

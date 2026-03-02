@@ -533,8 +533,8 @@ export default function PengajuanPage() {
                         </div>
                         <div className="flex-1 overflow-hidden">
                           <p className="text-sm font-medium truncate" style={{ color: 'var(--text-1)' }}>{f.file.name}</p>
-                          <p className="text-xs" style={{ color: '#22c55e' }}>
-                            {f.file.name}
+                          <p className="text-xs" style={{ color: 'var(--text-4)' }}>
+                            {Math.ceil(f.file.size / 1024)} KB
                           </p>
                         </div>
                         {f.previewUrl && (

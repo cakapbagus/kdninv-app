@@ -70,6 +70,7 @@ export interface Pengajuan {
   finished_at: string | null
   finished_by: number | null
   finished_by_username: string | null
+  finish_files: FileAttachment[] | null
   keterangan: string | null
   created_at: string
   updated_at: string

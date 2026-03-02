@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { Pengajuan } from '@/types'
+import { useState, useRef } from 'react'
+import { Pengajuan, FileAttachment } from '@/types'
 import { formatCurrency, formatDate, formatDateTime, formatTime, getStatusLabel } from '@/lib/utils'
-import { X, ExternalLink, FileText, CheckCircle, XCircle, Image as ImageIcon, Printer, Download, Pencil } from 'lucide-react'
+import { X, ExternalLink, FileText, CheckCircle, XCircle, Image as ImageIcon, Printer, Download, Pencil, Paperclip } from 'lucide-react'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
 import Img from 'next/image'
 import { KODEIN_LOGO_BASE64 } from '@/lib/logo-base64'
-import { ACCENT } from '@/lib/constants'
+import { ACCENT, MAX_UPLOAD_SIZE, ALLOWED_MIME_TYPES } from '@/lib/constants'
 import EditModal from '@/components/EditModal'
 
 const QRSignature = dynamic(() => import('@/components/QRSignature'), { ssr: false })
@@ -193,14 +193,69 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
   const [showAttachment, setShowAttachment] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
+  const [showFinishForm, setShowFinishForm] = useState(false)
+  // Simpan 1 file lokal (belum diupload) — upload terjadi saat konfirmasi
+  const [finishLocalFile, setFinishLocalFile] = useState<{ file: File; previewUrl?: string } | null>(null)
+  const finishInputRef = useRef<HTMLInputElement>(null)
+
+  // Compress image — sama persis dengan page pengajuan
+  const compressImage = (file: File, maxSize = MAX_UPLOAD_SIZE, defQuality = 0.9): Promise<File> => {
+    return new Promise((resolve) => {
+      if (file.type === 'application/pdf') { resolve(file); return }
+      const img = new window.Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        let { width, height } = img
+        const MAX_DIM = 1920
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) { height = Math.round(height * MAX_DIM / width); width = MAX_DIM }
+          else                { width = Math.round(width * MAX_DIM / height); height = MAX_DIM }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width; canvas.height = height
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+        const tryCompress = (quality: number) => {
+          canvas.toBlob(blob => {
+            if (!blob) { resolve(file); return }
+            if (blob.size <= maxSize || quality <= 0.3) {
+              resolve(new File([blob], file.name.replace(/\.[^/.]+$/, '.webp'), { type: 'image/webp', lastModified: Date.now() }))
+            } else {
+              tryCompress(Math.round((quality - 0.1) * 10) / 10)
+            }
+          }, 'image/webp', quality)
+        }
+        tryCompress(defQuality)
+      }
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+      img.src = url
+    })
+  }
 
   const handleAction = async (action: 'approved' | 'rejected' | 'finished') => {
     setLoading(action)
     try {
+      const body: Record<string, unknown> = { action, rejection_reason: rejectionReason }
+
+      // Upload ke Cloudinary terjadi di sini, tepat saat konfirmasi selesai
+      if (action === 'finished' && finishLocalFile) {
+        const { file } = finishLocalFile
+        const ext = file.name.split('.').pop() || 'jpg'
+        const noNotaSlug = p.no_nota.replace(/\//g, '-')
+        const filenameOverride = `bukti_${noNotaSlug}.${ext}`
+        const fd = new FormData()
+        fd.append('file', file)
+        fd.append('filename_override', filenameOverride)
+        const res = await fetch('/api/upload', { method: 'POST', body: fd })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? `Upload "${file.name}" gagal`)
+        body.finish_files = [{ url: data.url, public_id: data.public_id, name: filenameOverride }]
+      }
+
       const res = await fetch(`/api/pengajuan/${p.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, rejection_reason: rejectionReason }),
+        body: JSON.stringify(body),
       })
       const data: { error?: string } = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Terjadi kesalahan')
@@ -210,6 +265,42 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Gagal mengubah status')
     } finally { setLoading(null) }
+  }
+
+  // Pilih 1 file, kompres kalau gambar terlalu besar — sama dengan page pengajuan
+  const handleFinishFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (finishInputRef.current) finishInputRef.current.value = ''
+
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      toast.error('File harus berupa gambar (JPG, PNG, WEBP, GIF) atau PDF')
+      return
+    }
+
+    let fileToUse = file
+    if (file.type !== 'application/pdf' && file.size > MAX_UPLOAD_SIZE) {
+      toast.loading(`Mengompres "${file.name}"...`, { id: 'compress-finish' })
+      fileToUse = await compressImage(file)
+      toast.dismiss('compress-finish')
+      if (fileToUse.size <= MAX_UPLOAD_SIZE) {
+        toast.success(`Dikompres ke ${(fileToUse.size / 1024).toFixed(0)} KB`)
+      } else {
+        toast.error(`File masih terlalu besar setelah dikompres`)
+        return
+      }
+    }
+
+    const previewUrl = fileToUse.type.startsWith('image/') ? URL.createObjectURL(fileToUse) : undefined
+    // Revoke URL lama kalau ada
+    if (finishLocalFile?.previewUrl) URL.revokeObjectURL(finishLocalFile.previewUrl)
+    setFinishLocalFile({ file: fileToUse, previewUrl })
+  }
+
+  const removeFinishFile = () => {
+    if (finishLocalFile?.previewUrl) URL.revokeObjectURL(finishLocalFile.previewUrl)
+    setFinishLocalFile(null)
+    if (finishInputRef.current) finishInputRef.current.value = ''
   }
 
   const handlePrint = async () => {
@@ -272,6 +363,7 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
     : p.file_url
       ? [{ url: p.file_url, public_id: p.file_public_id ?? '', name: p.file_name ?? 'Lampiran' }]
       : []
+  const finishAttachments: FileAttachment[] = p.finish_files ?? []
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -542,6 +634,71 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
             </div>
           )}
 
+          {/* Bukti Transaksi (diunggah admin saat selesai) */}
+          {finishAttachments.length > 0 && (
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-3)' }}>
+                Bukti Transaksi
+              </h3>
+              <div className="space-y-2">
+                {finishAttachments.map((att, idx) => {
+                  const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(att.url)
+                  const previewUrl = isImg ? att.url : att.url.replace(/\.pdf$/i, '.jpg')
+                  return (
+                    <div key={idx} className="rounded-xl overflow-hidden" style={{ border: '1px solid #a7f3d0' }}>
+                      {previewUrl && (
+                        <Img
+                          src={previewUrl}
+                          alt={att.name || 'Bukti Transaksi'}
+                          className="w-full object-contain"
+                          width={500}
+                          height={300}
+                          style={{ maxHeight: '200px' }}
+                        />
+                      )}
+                      <div className="flex items-center gap-3 px-4 py-3"
+                        style={{ background: '#ecfdf5', borderTop: previewUrl ? '1px solid #a7f3d0' : 'none' }}>
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#d1fae5' }}>
+                          {isImg
+                            ? <ImageIcon className="w-3.5 h-3.5" style={{ color: '#10b981' }} />
+                            : <FileText className="w-3.5 h-3.5" style={{ color: '#10b981' }} />}
+                        </div>
+                        <span className="text-xs flex-1 truncate" style={{ color: '#065f46' }}>
+                          {att.name || `Bukti ${idx + 1}`}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="flex items-center gap-1 text-xs font-medium"
+                            style={{ color: '#059669' }}
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(att.url)
+                                const blob = await res.blob()
+                                const ext = att.url.split('?')[0].split('.').pop() || 'jpg'
+                                const filename = att.name || `bukti_${idx + 1}.${ext}`
+                                const url = URL.createObjectURL(blob)
+                                const a = document.createElement('a')
+                                a.href = url; a.download = filename; a.click()
+                                URL.revokeObjectURL(url)
+                              } catch { toast.error('Gagal mendownload file') }
+                            }}>
+                            <Download className="w-3 h-3" />
+                            Unduh
+                          </button>
+                          <a href={att.url} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs font-medium"
+                            style={{ color: '#10b981' }}>
+                            Buka <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Status timeline */}
           {(p.approved_at || p.rejected_at || p.finished_at) && (
             <div>
@@ -644,15 +801,106 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
               )}
 
               {userRole === 'admin' && p.status === 'approved' && (
-                <button onClick={() => handleAction('finished')}
-                  disabled={!!loading}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold !text-white disabled:opacity-60"
-                  style={{ background: '#6366f1' }}>
-                  {loading === 'finished'
-                    ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    : <CheckCircle className="w-4 h-4" />}
-                  Tandai Selesai
-                </button>
+                <div className="space-y-3">
+                  {!showFinishForm ? (
+                    <button onClick={() => setShowFinishForm(true)}
+                      disabled={!!loading}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold !text-white disabled:opacity-60"
+                      style={{ background: '#6366f1' }}>
+                      <CheckCircle className="w-4 h-4" />
+                      Tandai Selesai
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="label-field">
+                          Bukti Transaksi
+                          <span className="ml-1 font-normal normal-case text-xs" style={{ color: 'var(--text-4)' }}>(opsional)</span>
+                        </label>
+
+                        {/* Hidden file input */}
+                        <input
+                          ref={finishInputRef}
+                          type="file"
+                          accept="image/*,.pdf"
+                          className="hidden"
+                          onChange={handleFinishFileChange}
+                        />
+
+                        {/* Preview file terpilih */}
+                        {finishLocalFile && (
+                          <div className="mt-2 mb-2">
+                            <div className="flex items-center gap-3 p-3 rounded-xl"
+                              style={{ background: 'var(--accent-soft)', border: '1px solid rgba(79,110,247,0.15)' }}>
+                              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                                style={{ background: '#fff', border: '1px solid rgba(79,110,247,0.2)' }}>
+                                {finishLocalFile.previewUrl
+                                  ? <ImageIcon className="w-4 h-4" style={{ color: '#22c55e' }} />
+                                  : <FileText className="w-4 h-4" style={{ color: '#22c55e' }} />}
+                              </div>
+                              <div className="flex-1 overflow-hidden">
+                                <p className="text-xs font-medium truncate" style={{ color: 'var(--text-1)' }}>
+                                  {finishLocalFile.file.name}
+                                </p>
+                                <p className="text-xs" style={{ color: 'var(--text-4)' }}>
+                                  {(finishLocalFile.file.size / 1024).toFixed(0)} KB
+                                </p>
+                              </div>
+                              <button type="button" onClick={removeFinishFile}
+                                className="p-1.5 rounded-lg shrink-0"
+                                style={{ color: '#ef4444', background: '#fef2f2' }}>
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                            {/* Image preview */}
+                            {finishLocalFile.previewUrl && (
+                              <div className="rounded-xl overflow-hidden mt-1"
+                                style={{ border: '1px solid var(--border-soft)', maxHeight: '160px' }}>
+                                <Img
+                                  src={finishLocalFile.previewUrl}
+                                  alt="Preview"
+                                  className="w-full object-contain"
+                                  width={500} height={500}
+                                  style={{ maxHeight: '160px' }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Pilih file button — tampil kalau belum ada file */}
+                        {!finishLocalFile && (
+                          <button
+                            type="button"
+                            onClick={() => finishInputRef.current?.click()}
+                            className="mt-2 w-full flex items-center justify-center gap-2 p-4 rounded-xl transition-all"
+                            style={{ border: '2px dashed var(--border)', color: 'var(--text-3)' }}>
+                            <Paperclip className="w-5 h-5" />
+                            <span className="text-sm font-medium">Pilih File / Ambil Foto</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { setShowFinishForm(false); removeFinishFile() }}
+                          className="flex-1 py-2 rounded-xl text-sm font-medium"
+                          style={{ border: '1px solid var(--border)', color: 'var(--text-2)' }}>
+                          Batal
+                        </button>
+                        <button
+                          onClick={() => handleAction('finished')}
+                          disabled={!!loading}
+                          className="flex-1 py-2 rounded-xl text-sm font-semibold !text-white disabled:opacity-60"
+                          style={{ background: '#6366f1' }}>
+                          {loading === 'finished'
+                            ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto block" />
+                            : 'Konfirmasi Selesai'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}

@@ -85,6 +85,8 @@ export async function PATCH(
       if (session.role !== 'admin')
         return NextResponse.json({ error: 'Hanya Admin yang bisa menyelesaikan' }, { status: 403 })
 
+      const { finish_files } = body
+
       const rows = await sql`
         UPDATE pengajuan SET
           status = 'finished',
@@ -92,6 +94,7 @@ export async function PATCH(
           finished_by = ${session.sub},
           finished_by_username = ${session.username},
           signature_admin_finish = ${sig},
+          finish_files = ${JSON.stringify(finish_files ?? [])},
           updated_at = ${now}
         WHERE id = ${id}
         RETURNING no_nota, submitted_by
