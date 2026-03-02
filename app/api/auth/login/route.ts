@@ -67,7 +67,18 @@ export async function POST(req: NextRequest) {
       expiresIn
     )
 
-    const response = NextResponse.json({ success: true, role: user.role, username: user.username })
+    // Ambil credential IDs milik user
+    const creds = await sql`
+      SELECT credential_id FROM webauthn_credentials
+      WHERE user_id = ${user.id}
+    `
+
+    const response = NextResponse.json({
+      success:       true,
+      role:          user.role,
+      username:      user.username,
+      credentialIds: (creds as {credential_id: string}[]).map(r => r.credential_id),
+    })
     response.cookies.set(cookieName(), token, {
       httpOnly: true,
       secure:   process.env.NODE_ENV === 'production',

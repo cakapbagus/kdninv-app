@@ -101,7 +101,17 @@ export async function POST(req: NextRequest) {
         role:     user.role as 'user' | 'admin' | 'manager',
       })
 
-      const res = NextResponse.json({ success: true, role: user.role })
+      // Ambil semua credential IDs milik user untuk disimpan di localStorage client
+      const allCreds = await sql`
+        SELECT credential_id FROM webauthn_credentials WHERE user_id = ${userId}
+      `
+
+      const res = NextResponse.json({
+        success:       true,
+        role:          user.role,
+        username:      user.username,
+        credentialIds: (allCreds as { credential_id: string }[]).map(r => r.credential_id),
+      })
       res.cookies.set(cookieName(), token, {
         httpOnly: true,
         secure:   process.env.NODE_ENV === 'production',

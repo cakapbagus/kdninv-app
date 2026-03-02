@@ -118,10 +118,12 @@ export default function LoginPage() {
     } catch { /* silent */ }
   }
 
-  const afterLogin = (uname: string) => {
+  const afterLogin = (uname: string, credentialIds: string[] = []) => {
     try {
       localStorage.setItem(LS_USERNAME_KEY, uname)
       localStorage.setItem(LS_REMEMBER_KEY, rememberMe ? 'true' : 'false')
+      // Simpan semua credential ID yang diketahui server untuk user ini
+      localStorage.setItem('kdninv_credential_ids', JSON.stringify(credentialIds))
     } catch { /* ignore */ }
     autoSubscribe()
     toast.success('Login berhasil!')
@@ -148,9 +150,9 @@ export default function LoginPage() {
           turnstileToken: tsToken,
         }),
       })
-      const data: { error?: string } = await res.json()
+      const data: { error?: string, credentialIds?: string[] } = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Login gagal')
-      afterLogin(username.trim().toLowerCase())
+      afterLogin(username.trim().toLowerCase(), data.credentialIds ?? [])
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Login gagal')
       resetTurnstile()
@@ -185,9 +187,9 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ userId, response: credential }),
       })
-      const finishData = await finishRes.json()
+      const finishData: { error?: string; username?: string; credentialIds?: string[] } = await finishRes.json()
       if (!finishRes.ok) throw new Error(finishData.error ?? 'Autentikasi gagal')
-      afterLogin(uname)
+      afterLogin(uname, finishData.credentialIds ?? [])
     } catch (err: unknown) {
       if (err instanceof Error) {
         if (err.name === 'NotAllowedError') toast.error('Dibatalkan atau timeout')

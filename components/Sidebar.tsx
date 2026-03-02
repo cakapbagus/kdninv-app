@@ -88,7 +88,13 @@ export default function Sidebar({ profile }: SidebarProps) {
       .then(ok => {
         setFpSupported(ok)
         if (ok) {
-          fetch('/api/webauthn/status').then(r => r.json()).then(d => setFpRegistered(d.registered ?? false)).catch(() => {})
+          try {
+            const saved = localStorage.getItem('kdninv_credential_ids')
+            const ids: string[] = saved ? JSON.parse(saved) : []
+            setFpRegistered(ids.length > 0)
+          } catch {
+            setFpRegistered(false)
+          }
         }
       })
       .catch(() => {})
@@ -99,12 +105,15 @@ export default function Sidebar({ profile }: SidebarProps) {
     setFpLoading(true)
     try {
       if (fpRegistered) {
-        // Hapus credential
         const res = await fetch('/api/webauthn/register', { method: 'DELETE' })
-        if (res.ok) { setFpRegistered(false); toast.success('Fingerprint/passkey dinonaktifkan') }
-        else toast.error('Gagal menonaktifkan fingerprint/passkey')
+        if (res.ok) {
+          localStorage.removeItem('kdninv_credential_ids')
+          setFpRegistered(false)
+          toast.success('Fingerprint/passkey dinonaktifkan')
+        } else {
+          toast.error('Gagal menonaktifkan fingerprint/passkey')
+        }
       } else {
-        // Daftarkan credential baru
         const optRes = await fetch('/api/webauthn/register')
         if (!optRes.ok) { toast.error('Gagal memulai pendaftaran'); return }
         const options = await optRes.json()
@@ -114,8 +123,23 @@ export default function Sidebar({ profile }: SidebarProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(credential),
         })
-        if (verRes.ok) { setFpRegistered(true); toast.success('Fingerprint/passkey berhasil diaktifkan!') }
-        else { const e = await verRes.json(); toast.error(e.error ?? 'Pendaftaran gagal') }
+        if (verRes.ok) {
+          const data = await verRes.json()
+          // Tambahkan credential ID baru ke localStorage
+          try {
+            const saved = localStorage.getItem('kdninv_credential_ids')
+            const existing: string[] = saved ? JSON.parse(saved) : []
+            if (data.credentialId && !existing.includes(data.credentialId)) {
+              existing.push(data.credentialId)
+            }
+            localStorage.setItem('kdninv_credential_ids', JSON.stringify(existing))
+          } catch { /* ignore */ }
+          setFpRegistered(true)
+          toast.success('Fingerprint/passkey berhasil diaktifkan!')
+        } else {
+          const e = await verRes.json()
+          toast.error(e.error ?? 'Pendaftaran gagal')
+        }
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'NotAllowedError') toast.error('Dibatalkan')

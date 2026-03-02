@@ -24,7 +24,7 @@ export async function GET() {
     userDisplayName: session.username,
     attestationType: 'none',
     authenticatorSelection: {
-      // authenticatorAttachment: 'platform',
+      // Tidak dibatasi 'platform' — Bitwarden, Google, iCloud, dll bisa daftar
       userVerification:        'required',
       residentKey:             'preferred',
     },
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
 
     await sql`DELETE FROM webauthn_challenges WHERE user_id = ${session.sub}`
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, credentialId: credential.id })
   } catch (err) {
     console.error('WebAuthn register error:', err)
     return NextResponse.json({ error: 'Registrasi gagal' }, { status: 500 })
