@@ -12,6 +12,7 @@ Aplikasi web manajemen pengajuan nota (bukti kas/bank keluar) berbasis Next.js 1
 | React      | **React 19**                               |
 | Database   | **Neon PostgreSQL** (serverless)           |
 | Auth       | **Custom JWT** (jose + bcryptjs)           |
+| Auth       | **WebAuthn** (fingerprint + TWA ready)     |
 | Security   | **Cloudflare Turnstile** (bot protection)  |
 | Storage    | **Cloudinary**                             |
 | Styling    | **Tailwind CSS v3 + CSS variables**        |
@@ -211,7 +212,8 @@ kdninv-app/
 │   │   ├── push/               # Push subscription (GET/POST/DELETE)
 │   │   ├── rekening/           # CRUD rekening tersimpan
 │   │   ├── upload/             # Cloudinary upload
-│   │   └── users/              # User management API
+│   │   ├── users/              # User management API
+│   │   └── webauthn/           # Fingerprint auth
 │   ├── login/
 │   ├── layout.tsx
 │   └── manifest.ts             # PWA manifest

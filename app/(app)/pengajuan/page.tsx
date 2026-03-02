@@ -260,6 +260,22 @@ export default function PengajuanPage() {
         })
       }
 
+      // validasi rekening sumber dan penerima
+      if (
+        form.rekening_sumber &&
+        form.bank_sumber &&
+        form.rekening_penerima &&
+        form.bank_penerima
+      ) {
+        if (
+          form.rekening_sumber === form.rekening_penerima &&
+          form.bank_sumber.toLowerCase() === form.bank_penerima.toLowerCase()
+        ) {
+          toast.error('Rekening sumber dan penerima tidak boleh sama')
+          return
+        }
+      }
+
       // Simpan rekening ke DB kalau dicentang
       if (saveSumber && form.rekening_sumber && form.bank_sumber && form.nama_sumber) {
         await fetch('/api/rekening', {

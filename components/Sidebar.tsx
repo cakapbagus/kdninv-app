@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import type { Profile } from '@/types'
@@ -10,9 +10,10 @@ import {
   FileText, LayoutDashboard, ScrollText, History,
   Shield, LogOut, Menu, X, ChevronRight,
   KeyRound, Eye, EyeOff, Settings,
-  Bell, BellOff,
+  Bell, BellOff, Fingerprint,
 } from 'lucide-react'
 import { usePushNotification } from '@/hooks/usePushNotification'
+import { startRegistration } from '@simplewebauthn/browser'
 
 interface SidebarProps { profile: Profile }
 
@@ -74,6 +75,55 @@ export default function Sidebar({ profile }: SidebarProps) {
   const [nameLoading,    setNameLoading]    = useState(false)
   const [localFullName,  setLocalFullName]  = useState(profile.full_name ?? '')
   const [pendingNotif,   setPendingNotif]   = useState(false)
+
+  // ── WebAuthn fingerprint state ───────────────────────────────────────────
+  const [fpSupported,   setFpSupported]   = useState(false)
+  const [fpRegistered,  setFpRegistered]  = useState(false)
+  const [fpLoading,     setFpLoading]     = useState(false)
+
+  // ── WebAuthn init ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.PublicKeyCredential) return
+    window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+      .then(ok => {
+        setFpSupported(ok)
+        if (ok) {
+          fetch('/api/webauthn/status').then(r => r.json()).then(d => setFpRegistered(d.registered ?? false)).catch(() => {})
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const handleFpToggle = async () => {
+    if (fpLoading) return
+    setFpLoading(true)
+    try {
+      if (fpRegistered) {
+        // Hapus credential
+        const res = await fetch('/api/webauthn/register', { method: 'DELETE' })
+        if (res.ok) { setFpRegistered(false); toast.success('Fingerprint dinonaktifkan') }
+        else toast.error('Gagal menonaktifkan fingerprint')
+      } else {
+        // Daftarkan credential baru
+        const optRes = await fetch('/api/webauthn/register')
+        if (!optRes.ok) { toast.error('Gagal memulai pendaftaran'); return }
+        const options = await optRes.json()
+        const credential = await startRegistration({ optionsJSON: options })
+        const verRes = await fetch('/api/webauthn/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(credential),
+        })
+        if (verRes.ok) { setFpRegistered(true); toast.success('Fingerprint berhasil diaktifkan!') }
+        else { const e = await verRes.json(); toast.error(e.error ?? 'Pendaftaran gagal') }
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'NotAllowedError') toast.error('Dibatalkan')
+      else toast.error('Terjadi kesalahan')
+    } finally {
+      setFpLoading(false)
+    }
+  }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   const resetPwForm = () => {
@@ -252,6 +302,16 @@ export default function Sidebar({ profile }: SidebarProps) {
             <KeyRound className="w-4 h-4" />
             Ganti Password
           </button>
+          {fpSupported && (
+            <button onClick={handleFpToggle} disabled={fpLoading}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
+              style={{ color: fpRegistered ? ACCENT : 'var(--text-3)' }}>
+              {fpLoading
+                ? <span className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--border)', borderTopColor: ACCENT }} />
+                : <Fingerprint className="w-4 h-4" />}
+              {fpRegistered ? 'Fingerprint Aktif' : 'Aktifkan Fingerprint'}
+            </button>
+          )}
           <button onClick={() => { setShowLogoutConfirm(true); setMobileOpen(false) }}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
             style={{ color: '#ef4444' }}>
