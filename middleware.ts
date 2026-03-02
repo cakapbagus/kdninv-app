@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 
 // Paths that are always public
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/manifest.webmanifest']
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/webauthn/login', '/manifest.webmanifest']
 
 // Role-based route restrictions
 const ROLE_ROUTES: { path: string; roles: string[] }[] = [

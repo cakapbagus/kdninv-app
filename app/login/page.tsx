@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { Eye, EyeOff, FileText, Fingerprint, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, FileText, Fingerprint, Loader2, Lock } from 'lucide-react'
 import { ACCENT } from '@/lib/constants'
 import InstallPWA from '@/components/InstallPWA'
 import { startAuthentication } from '@simplewebauthn/browser'
@@ -173,7 +173,7 @@ export default function LoginPage() {
       const startData = await startRes.json()
       if (!startRes.ok) {
         if (startData.error === 'no_credential') {
-          toast.error('Fingerprint belum terdaftar. Login dengan password dulu, lalu aktifkan di profil.')
+          toast.error('Fingerprint/passkey belum terdaftar. Harap login menggunakan password.')
           return
         }
         throw new Error(startData.error ?? 'Gagal memulai autentikasi')
@@ -339,20 +339,29 @@ export default function LoginPage() {
                     onClick={handleFingerprint}
                     disabled={busy}
                     title="Masuk dengan fingerprint"
-                    className="min-[821px]:hidden flex items-center justify-center w-12 rounded-xl transition-all disabled:opacity-60"
+                    className="flex items-center justify-center w-12 rounded-xl transition-all disabled:opacity-60"
                     style={{ border: `1.5px solid ${ACCENT}`, color: ACCENT, background: 'var(--accent-soft)' }}>
                     {fpLoading
                       ? <Loader2 className="w-5 h-5 animate-spin" />
-                      : <Fingerprint className="w-5 h-5" />}
+                      : <>
+                          <Fingerprint className="min-[821px]:hidden w-5 h-5" />
+                          <Lock className="hidden min-[821px]:inline w-5 h-5" />
+                        </>
+                    }
                   </button>
                 )}
               </div>
             </form>
 
             {fpSupported && (
-              <p className="min-[821px]:hidden text-xs text-center mt-3 flex items-center justify-center gap-1"
+              <p className="text-xs text-center mt-3 flex items-center justify-center gap-1"
                 style={{ color: 'var(--text-4)' }}>
-                Ketuk <Fingerprint className="w-3 h-3" /> untuk login dengan biometrik
+                Ketuk 
+                <>
+                  <Fingerprint className="min-[821px]:hidden w-3 h-3" />
+                  <Lock className="hidden min-[821px]:inline w-3 h-3" />
+                </>
+                untuk login
               </p>
             )}
 

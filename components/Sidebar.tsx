@@ -10,7 +10,7 @@ import {
   FileText, LayoutDashboard, ScrollText, History,
   Shield, LogOut, Menu, X, ChevronRight,
   KeyRound, Eye, EyeOff, Settings,
-  Bell, BellOff, Fingerprint,
+  Bell, BellOff, Fingerprint, Lock
 } from 'lucide-react'
 import { usePushNotification } from '@/hooks/usePushNotification'
 import { startRegistration } from '@simplewebauthn/browser'
@@ -101,8 +101,8 @@ export default function Sidebar({ profile }: SidebarProps) {
       if (fpRegistered) {
         // Hapus credential
         const res = await fetch('/api/webauthn/register', { method: 'DELETE' })
-        if (res.ok) { setFpRegistered(false); toast.success('Fingerprint dinonaktifkan') }
-        else toast.error('Gagal menonaktifkan fingerprint')
+        if (res.ok) { setFpRegistered(false); toast.success('Fingerprint/passkey dinonaktifkan') }
+        else toast.error('Gagal menonaktifkan fingerprint/passkey')
       } else {
         // Daftarkan credential baru
         const optRes = await fetch('/api/webauthn/register')
@@ -114,7 +114,7 @@ export default function Sidebar({ profile }: SidebarProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(credential),
         })
-        if (verRes.ok) { setFpRegistered(true); toast.success('Fingerprint berhasil diaktifkan!') }
+        if (verRes.ok) { setFpRegistered(true); toast.success('Fingerprint/passkey berhasil diaktifkan!') }
         else { const e = await verRes.json(); toast.error(e.error ?? 'Pendaftaran gagal') }
       }
     } catch (err: unknown) {
@@ -308,8 +308,22 @@ export default function Sidebar({ profile }: SidebarProps) {
               style={{ color: fpRegistered ? ACCENT : 'var(--text-3)' }}>
               {fpLoading
                 ? <span className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--border)', borderTopColor: ACCENT }} />
-                : <Fingerprint className="w-4 h-4" />}
-              {fpRegistered ? 'Fingerprint Aktif' : 'Aktifkan Fingerprint'}
+                : <>
+                    <Fingerprint className="min-[821px]:hidden w-4 h-4" />
+                    <Lock className="hidden min-[821px]:inline w-4 h-4" />
+                  </>
+              }
+              {fpRegistered ? (
+                <>
+                  <span className="min-[821px]:hidden">Fingerprint Aktif</span>
+                  <span className="hidden min-[821px]:inline">Passkey Aktif</span>
+                </>
+              ) : (
+                <>
+                  <span className="min-[821px]:hidden">Aktifkan Fingerprint</span>
+                  <span className="hidden min-[821px]:inline">Aktifkan Passkey</span>
+                </>
+              )}
             </button>
           )}
           <button onClick={() => { setShowLogoutConfirm(true); setMobileOpen(false) }}
