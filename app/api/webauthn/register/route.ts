@@ -24,7 +24,7 @@ export async function GET() {
     userDisplayName: session.username,
     attestationType: 'none',
     authenticatorSelection: {
-      authenticatorAttachment: 'platform',
+      // authenticatorAttachment: 'platform',
       userVerification:        'required',
       residentKey:             'preferred',
     },
