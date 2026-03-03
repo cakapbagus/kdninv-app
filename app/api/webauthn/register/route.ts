@@ -13,20 +13,20 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const existing = await sql`
-    SELECT credential_id FROM webauthn_credentials WHERE user_id = ${session.sub}
+    SELECT credential_id FROM webauthn_credentials
+    WHERE user_id = ${parseInt(session.sub)}
   `
 
   const options = await generateRegistrationOptions({
-    rpName:   RP_NAME,
-    rpID:     RP_ID,
-    userID:   new TextEncoder().encode(session.sub),
-    userName: session.username,
+    rpName:          RP_NAME,
+    rpID:            RP_ID,
+    userID:          new TextEncoder().encode(session.sub),
+    userName:        session.username,
     userDisplayName: session.username,
     attestationType: 'none',
     authenticatorSelection: {
-      // Tidak dibatasi 'platform' — Bitwarden, Google, iCloud, dll bisa daftar
-      userVerification:        'required',
-      residentKey:             'preferred',
+      userVerification: 'required',
+      residentKey:      'preferred',
     },
     excludeCredentials: (existing as { credential_id: string }[]).map(r => ({
       id:   r.credential_id,
@@ -36,7 +36,7 @@ export async function GET() {
 
   await sql`
     INSERT INTO webauthn_challenges (user_id, challenge, expires_at)
-    VALUES (${session.sub}, ${options.challenge}, NOW() + INTERVAL '5 minutes')
+    VALUES (${parseInt(session.sub)}, ${options.challenge}, NOW() + INTERVAL '5 minutes')
     ON CONFLICT (user_id) DO UPDATE SET
       challenge  = EXCLUDED.challenge,
       expires_at = EXCLUDED.expires_at
@@ -45,7 +45,7 @@ export async function GET() {
   return NextResponse.json(options)
 }
 
-// POST — verify & simpan credential
+// POST — verifikasi & simpan credential baru
 export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -54,16 +54,18 @@ export async function POST(req: NextRequest) {
 
   const rows = await sql`
     SELECT challenge FROM webauthn_challenges
-    WHERE user_id = ${session.sub} AND expires_at > NOW()
+    WHERE user_id = ${parseInt(session.sub)} AND expires_at > NOW()
   `
-  if (!rows.length) return NextResponse.json({ error: 'Challenge kadaluarsa, coba lagi' }, { status: 400 })
+  if (!rows.length) {
+    return NextResponse.json({ error: 'Challenge kadaluarsa, coba lagi' }, { status: 400 })
+  }
 
   try {
     const verification = await verifyRegistrationResponse({
-      response:          body,
-      expectedChallenge: rows[0].challenge as string,
-      expectedOrigin:    ORIGIN,
-      expectedRPID:      RP_ID,
+      response:                body,
+      expectedChallenge:       rows[0].challenge as string,
+      expectedOrigin:          ORIGIN,
+      expectedRPID:            RP_ID,
       requireUserVerification: true,
     })
 
@@ -74,10 +76,11 @@ export async function POST(req: NextRequest) {
     const { credential } = verification.registrationInfo
 
     await sql`
-      INSERT INTO webauthn_credentials (credential_id, user_id, public_key, counter, transports)
+      INSERT INTO webauthn_credentials
+        (credential_id, user_id, public_key, counter, transports)
       VALUES (
         ${credential.id},
-        ${session.sub},
+        ${parseInt(session.sub)},
         ${Buffer.from(credential.publicKey).toString('base64')},
         ${credential.counter},
         ${JSON.stringify(body.response?.transports ?? [])}
@@ -85,20 +88,11 @@ export async function POST(req: NextRequest) {
       ON CONFLICT (credential_id) DO UPDATE SET counter = EXCLUDED.counter
     `
 
-    await sql`DELETE FROM webauthn_challenges WHERE user_id = ${session.sub}`
+    await sql`DELETE FROM webauthn_challenges WHERE user_id = ${parseInt(session.sub)}`
 
     return NextResponse.json({ success: true, credentialId: credential.id })
   } catch (err) {
     console.error('WebAuthn register error:', err)
     return NextResponse.json({ error: 'Registrasi gagal' }, { status: 500 })
   }
-}
-
-// DELETE — hapus semua credential milik user
-export async function DELETE() {
-  const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  await sql`DELETE FROM webauthn_credentials WHERE user_id = ${session.sub}`
-  return NextResponse.json({ success: true })
 }

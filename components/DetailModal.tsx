@@ -2,21 +2,17 @@
 
 import { useState, useRef } from 'react'
 import { Pengajuan, FileAttachment } from '@/types'
-import { formatCurrency, formatDate, formatDateTime, formatTime, getStatusLabel } from '@/lib/utils'
+import { formatCurrency, formatDate, formatDateTime, formatTime, compressImage } from '@/lib/utils'
 import { X, ExternalLink, FileText, CheckCircle, XCircle, Image as ImageIcon, Printer, Download, Pencil, Paperclip } from 'lucide-react'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
 import Img from 'next/image'
 import { KODEIN_LOGO_BASE64 } from '@/lib/logo-base64'
-import { ACCENT, MAX_UPLOAD_SIZE, ALLOWED_MIME_TYPES } from '@/lib/constants'
+import { ACCENT, MAX_UPLOAD_SIZE, ALLOWED_MIME_TYPES, STATUS_LABELS } from '@/lib/constants'
 import EditModal from '@/components/EditModal'
+import { StatusBadge } from '@/components/ui/Helpers'
 
 const QRSignature = dynamic(() => import('@/components/QRSignature'), { ssr: false })
-
-function StatusBadge({ status }: { status: string }) {
-  const cls = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected', finished: 'badge-finished' }[status] || 'badge-pending'
-  return <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${cls}`}>{getStatusLabel(status)}</span>
-}
 
 interface DetailModalProps {
   pengajuan: Pengajuan
@@ -198,40 +194,6 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
   const [finishLocalFile, setFinishLocalFile] = useState<{ file: File; previewUrl?: string } | null>(null)
   const finishInputRef = useRef<HTMLInputElement>(null)
 
-  // Compress image — sama persis dengan page pengajuan
-  const compressImage = (file: File, maxSize = MAX_UPLOAD_SIZE, defQuality = 0.9): Promise<File> => {
-    return new Promise((resolve) => {
-      if (file.type === 'application/pdf') { resolve(file); return }
-      const img = new window.Image()
-      const url = URL.createObjectURL(file)
-      img.onload = () => {
-        URL.revokeObjectURL(url)
-        let { width, height } = img
-        const MAX_DIM = 1920
-        if (width > MAX_DIM || height > MAX_DIM) {
-          if (width > height) { height = Math.round(height * MAX_DIM / width); width = MAX_DIM }
-          else                { width = Math.round(width * MAX_DIM / height); height = MAX_DIM }
-        }
-        const canvas = document.createElement('canvas')
-        canvas.width = width; canvas.height = height
-        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
-        const tryCompress = (quality: number) => {
-          canvas.toBlob(blob => {
-            if (!blob) { resolve(file); return }
-            if (blob.size <= maxSize || quality <= 0.3) {
-              resolve(new File([blob], file.name.replace(/\.[^/.]+$/, '.webp'), { type: 'image/webp', lastModified: Date.now() }))
-            } else {
-              tryCompress(Math.round((quality - 0.1) * 10) / 10)
-            }
-          }, 'image/webp', quality)
-        }
-        tryCompress(defQuality)
-      }
-      img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
-      img.src = url
-    })
-  }
-
   const handleAction = async (action: 'approved' | 'rejected' | 'finished') => {
     setLoading(action)
     try {
@@ -259,7 +221,7 @@ export default function DetailModal({ pengajuan: p, onClose, showActions = false
       })
       const data: { error?: string } = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Terjadi kesalahan')
-      toast.success(`Status berhasil diubah ke ${getStatusLabel(action)}`)
+      toast.success(`Status berhasil diubah ke ${STATUS_LABELS[action]}`)
       onUpdate?.()
       onClose()
     } catch (err: unknown) {

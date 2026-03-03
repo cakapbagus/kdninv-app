@@ -10,6 +10,8 @@ export async function POST(req: NextRequest) {
   const { oldPassword, newPassword } = await req.json()
   if (!oldPassword || !newPassword)
     return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 })
+  if (oldPassword === newPassword)
+    return NextResponse.json({ error: 'Password lama dan baru harus berbeda' }, { status: 400 })
   if (newPassword.length < 6)
     return NextResponse.json({ error: 'Password minimal 6 karakter' }, { status: 400 })
 

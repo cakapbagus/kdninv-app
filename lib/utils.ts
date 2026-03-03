@@ -1,5 +1,39 @@
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
+import { MAX_UPLOAD_SIZE } from '@/lib/constants'
+
+export function compressImage (file: File, maxSize = MAX_UPLOAD_SIZE, defQuality = 0.9): Promise<File> {
+    return new Promise((resolve) => {
+      if (file.type === 'application/pdf') { resolve(file); return }
+      const img = new window.Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        let { width, height } = img
+        const MAX_DIM = 1920
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) { height = Math.round(height * MAX_DIM / width); width = MAX_DIM }
+          else                { width = Math.round(width * MAX_DIM / height); height = MAX_DIM }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width  = width
+        canvas.height = height
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+        const tryCompress = (quality: number) => {
+          canvas.toBlob(blob => {
+            if (!blob) { resolve(file); return }
+            if (blob.size <= maxSize || quality <= 0.3) {
+              resolve(new File([blob], file.name.replace(/\.[^/.]+$/, '.webp'), { type: 'image/webp', lastModified: Date.now() }))
+            } else { tryCompress(Math.round((quality - 0.1) * 10) / 10) }
+          }, 'image/webp', quality)
+        }
+        tryCompress(defQuality)
+      }
+
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+      img.src = url
+    })
+  }
 
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('id-ID', {
@@ -37,16 +71,6 @@ export function generateSignature(username: string): string {
   const now = new Date()
   const timestamp = format(now, 'dd/MM/yyyy HH:mm:ss')
   return `${username} | ${timestamp}`
-}
-
-export function getStatusLabel(status: string): string {
-  switch (status) {
-    case 'pending': return 'Menunggu'
-    case 'approved': return 'Disetujui'
-    case 'rejected': return 'Ditolak'
-    case 'finished': return 'Selesai'
-    default: return status
-  }
 }
 
 // Terbilang: convert number to Indonesian words

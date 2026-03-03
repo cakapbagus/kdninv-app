@@ -218,6 +218,7 @@ kdninv-app/
 │   ├── layout.tsx
 │   └── manifest.ts             # PWA manifest
 ├── components/
+│   ├── ui/                     # reuseable ui component
 │   ├── DetailModal.tsx         # Detail + print + aksi status + edit
 │   ├── EditModal.tsx           # Edit pengajuan
 │   ├── InstallPWA.tsx          # Fixed button to install PWA
@@ -248,7 +249,7 @@ kdninv-app/
 
 ## Fitur Utama
 
-- **Pengajuan nota** dengan detail barang, transfer bank, lampiran (maks. 3 file, auto-compress WebP)
+- **Pengajuan nota** dengan detail barang, transfer bank, lampiran (auto-compress)
 - **Edit pengajuan** — bisa diedit selama status masih menunggu atau ditolak, otomatis re-submit ke pending
 - **Rekening tersimpan** — simpan rekening sumber/penerima untuk dipakai ulang di pengajuan berikutnya
 - **Tanda tangan digital** berbasis QR code — tersimpan di DB, tampil di dokumen cetak
@@ -257,8 +258,10 @@ kdninv-app/
 - **Push Notification** — notif real-time saat pengajuan masuk, disetujui, ditolak, atau selesai
 - **PWA** — bisa di-install ke homescreen, offline shell, tampilan standalone
 - **User Management** CRUD lengkap dengan permission berbasis role
+- **Rekening Management** CRUD lengkap dengan permission berbasis role
 - **Dashboard** dengan statistik pengajuan (admin: tampilan mine vs semua)
 - **Responsive** — mobile-first dengan sidebar overlay
+- **Passkey / Fingerprint Auth** — autentifikasi dengan passkey / fingerprint
 
 ---
 

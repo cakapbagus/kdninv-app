@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Pengajuan } from '@/types'
-import { formatCurrency, formatDateTime, getStatusLabel } from '@/lib/utils'
+import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { Shield, Filter, RefreshCw, CreditCard, Plus, Pencil, Trash2, X, Check, Loader2, ClipboardList, Users, KeyRound, Eye, EyeOff } from 'lucide-react'
 import DetailModal from '@/components/DetailModal'
 import { ACCENT } from '@/lib/constants'
 import toast from 'react-hot-toast'
+import { StatusBadge, Field } from '@/components/ui/Helpers'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Rekening { no_rekening: string; bank: string; nama: string; created_at: string }
@@ -14,36 +15,11 @@ interface UserRow  { id: number; username: string; full_name: string | null; rol
 type MyRole = 'admin' | 'manager' | ''
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function StatusBadge({ status }: { status: string }) {
-  const cls = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected', finished: 'badge-finished' }[status] || 'badge-pending'
-  return <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${cls}`}>{getStatusLabel(status)}</span>
-}
-
 const rolePill = (role: string) => ({
   user:    'bg-indigo-50 text-indigo-600 border-indigo-200',
   admin:   'bg-blue-50   text-blue-600   border-blue-200',
   manager: 'bg-purple-50 text-purple-600 border-purple-200',
 }[role] ?? 'bg-gray-50 text-gray-600 border-gray-200')
-
-function Field({ label, type = 'text', req = false, placeholder = '', value, numberOnly = false, alphaOnly = false, onChange }: {
-  label: string; type?: string; req?: boolean; placeholder?: string; value: string
-  numberOnly?: boolean; alphaOnly?: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-}) {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let v = e.target.value
-    if (numberOnly) v = v.replace(/[^0-9]/g, '')
-    if (alphaOnly)  v = v.replace(/[^a-zA-Z\s]/g, '')
-    e.target.value = v
-    onChange(e)
-  }
-  return (
-    <div>
-      <label className="label-field">{label} {req && <span style={{ color: '#ef4444' }}>*</span>}</label>
-      <input type={type} value={value} onChange={handleChange} className="input-field" placeholder={placeholder}
-        required={req} inputMode={numberOnly ? 'numeric' : undefined} />
-    </div>
-  )
-}
 
 // ── Modal: Tambah / Edit Rekening ─────────────────────────────────────────────
 function RekeningModal({ initial, onClose, onSuccess }: { initial?: Rekening; onClose: () => void; onSuccess: () => void }) {

@@ -3,9 +3,6 @@ import { getSession } from '@/lib/auth'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 import { MAX_UPLOAD_SIZE, ALLOWED_MIME_TYPES } from '@/lib/constants'
 
-// Note: In Next.js 15 App Router, bodyParser config is not needed —
-// formData() is natively supported. Remove old pages-style `export const config`.
-
 export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

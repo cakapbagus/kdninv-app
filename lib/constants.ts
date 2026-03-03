@@ -9,3 +9,9 @@ export const ALLOWED_MIME_TYPES = [
   'image/gif',
   'application/pdf',
 ]
+export const STATUS_LABELS : Record<string, string> = {
+  pending: 'Menunggu',
+  approved: 'Disetujui',
+  rejected: 'Ditolak',
+  finished: 'Selesai'
+}

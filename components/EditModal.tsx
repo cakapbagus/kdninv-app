@@ -4,19 +4,17 @@ import { useState, useRef, useEffect } from 'react'
 import { X, Plus, Trash2, Upload, Image as ImageIcon, FileText } from 'lucide-react'
 import Img from 'next/image'
 import toast from 'react-hot-toast'
-import { formatCurrency, angkaTerbilang } from '@/lib/utils'
+import { formatCurrency, angkaTerbilang, compressImage } from '@/lib/utils'
 import type { Pengajuan, PengajuanItem, FileAttachment } from '@/types'
+import { Field } from '@/components/ui/Helpers'
+import { ACCENT, LIMIT_UPLOAD, ALLOWED_MIME_TYPES } from '@/lib/constants'
 
-const ACCENT = '#4f6ef7'
-const LIMIT_UPLOAD = 3
-const ALLOWED_MIME = ['image/jpeg','image/png','image/jpg','image/webp','image/gif','application/pdf']
 const emptyItem = (): PengajuanItem => ({ nama_barang: '', jumlah: 1, satuan: '', harga: 0, total: 0 })
 
 type LocalFile = { file: File; previewUrl?: string }
 type ExistingFile = FileAttachment & { previewUrl?: string }
 
-// ── Reusable sub-components ──────────────────────────────────────────────────
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function EditSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="glass rounded-2xl overflow-hidden">
       <div className="px-5 py-3" style={{ borderBottom: '1px solid var(--border-soft)', background: 'var(--surface-soft)' }}>
@@ -27,52 +25,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function Field({ label, name, value, onChange, placeholder, type = 'text' }: {
-  label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  placeholder?: string; type?: string
-}) {
-  return (
-    <div>
-      <label htmlFor={`edit-${name}`} className="label-field">{label}</label>
-      <input id={`edit-${name}`} type={type} name={name} value={value}
-        onChange={onChange} placeholder={placeholder} className="input-field" />
-    </div>
-  )
-}
-
-// ── Compress image via canvas ─────────────────────────────────────────────────
-function compressImage(file: File, maxSizeMB = 1.5): Promise<File> {
-  return new Promise(resolve => {
-    if (!file.type.startsWith('image/')) { resolve(file); return }
-    const img = new window.Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      let { width, height } = img
-      const MAX_DIM = 1920
-      if (width > MAX_DIM || height > MAX_DIM) {
-        if (width > height) { height = Math.round(height * MAX_DIM / width); width = MAX_DIM }
-        else { width = Math.round(width * MAX_DIM / height); height = MAX_DIM }
-      }
-      const canvas = document.createElement('canvas')
-      canvas.width = width; canvas.height = height
-      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
-      const tryCompress = (quality: number) => {
-        canvas.toBlob(blob => {
-          if (!blob) { resolve(file); return }
-          if (blob.size <= maxSizeMB * 1024 * 1024 || quality <= 0.3) {
-            resolve(new File([blob], file.name.replace(/\.[^/.]+$/, '.webp'), { type: 'image/webp', lastModified: Date.now() }))
-          } else { tryCompress(Math.round((quality - 0.1) * 10) / 10) }
-        }, 'image/webp', quality)
-      }
-      tryCompress(0.85)
-    }
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
-    img.src = url
-  })
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
 interface Props {
   pengajuan: Pengajuan
   onClose: () => void
@@ -135,7 +87,7 @@ export default function EditModal({ pengajuan: p, onClose, onSuccess }: Props) {
     if (remaining <= 0) { toast.error(`Maksimum ${LIMIT_UPLOAD} file lampiran`); return }
     const toAdd = Array.from(files).slice(0, remaining)
     for (const file of toAdd) {
-      if (!ALLOWED_MIME.includes(file.type)) {
+      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
         toast.error(`File "${file.name}" tidak didukung`); continue
       }
       let f = file
@@ -247,32 +199,32 @@ export default function EditModal({ pengajuan: p, onClose, onSuccess }: Props) {
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {/* Divisi */}
-          <Section title="Informasi Nota">
-            <Field label="Divisi" name="divisi" value={divisi} onChange={e => setDivisi(e.target.value)} placeholder="Contoh: Keuangan" />
-          </Section>
+          <EditSection title="Informasi Nota">
+            <Field label="Divisi" value={divisi} onChange={e => setDivisi(e.target.value)} placeholder="Contoh: Keuangan" />
+          </EditSection>
 
           {/* Transfer */}
-          <Section title="Informasi Transfer">
+          <EditSection title="Informasi Transfer">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider pb-2"
                   style={{ color: 'var(--text-4)', borderBottom: '1px solid var(--border-soft)' }}>Sumber Dana</h4>
-                <Field label="Rekening Sumber"  name="rekening_sumber" value={rekeningS} onChange={e => setRekeningS(e.target.value)} placeholder="Nomor rekening" />
-                <Field label="Bank Sumber"       name="bank_sumber"     value={bankS}     onChange={e => setBankS(e.target.value)}     placeholder="Nama bank" />
-                <Field label="Nama Sumber"       name="nama_sumber"     value={namaS}     onChange={e => setNamaS(e.target.value)}     placeholder="Nama pemilik rekening" />
+                <Field label="Rekening Sumber" req numberOnly value={rekeningS} onChange={e => setRekeningS(e.target.value)} placeholder="Nomor rekening" />
+                <Field label="Bank Sumber"     req alphaOnly  value={bankS}     onChange={e => setBankS(e.target.value)}     placeholder="Nama bank" />
+                <Field label="Nama Sumber"     req alphaOnly  value={namaS}     onChange={e => setNamaS(e.target.value)}     placeholder="Nama pemilik rekening" />
               </div>
               <div className="space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider pb-2"
                   style={{ color: 'var(--text-4)', borderBottom: '1px solid var(--border-soft)' }}>Penerima Dana</h4>
-                <Field label="Rekening Penerima" name="rekening_penerima" value={rekeningP} onChange={e => setRekeningP(e.target.value)} placeholder="Nomor rekening" />
-                <Field label="Bank Penerima"      name="bank_penerima"    value={bankP}     onChange={e => setBankP(e.target.value)}     placeholder="Nama bank" />
-                <Field label="Nama Penerima"      name="nama_penerima"    value={namaP}     onChange={e => setNamaP(e.target.value)}     placeholder="Nama pemilik rekening" />
+                <Field label="Rekening Penerima" req numberOnly value={rekeningP} onChange={e => setRekeningP(e.target.value)} placeholder="Nomor rekening" />
+                <Field label="Bank Penerima"     req alphaOnly  value={bankP}     onChange={e => setBankP(e.target.value)}     placeholder="Nama bank" />
+                <Field label="Nama Penerima"     req alphaOnly  value={namaP}     onChange={e => setNamaP(e.target.value)}     placeholder="Nama pemilik rekening" />
               </div>
             </div>
-          </Section>
+          </EditSection>
 
           {/* Detail Barang */}
-          <Section title="Detail Barang">
+          <EditSection title="Detail Barang">
             <div className="space-y-4">
               {items.map((item, idx) => (
                 <div key={idx} className="rounded-xl p-4 relative"
@@ -332,18 +284,18 @@ export default function EditModal({ pengajuan: p, onClose, onSuccess }: Props) {
                 </div>
               </div>
             </div>
-          </Section>
+          </EditSection>
 
           {/* Catatan */}
-          <Section title="Catatan">
+          <EditSection title="Catatan">
             <textarea value={catatan}
               onChange={e => setCatatan(e.target.value)}
               className="input-field resize-none" rows={3}
               placeholder="Catatan tambahan (opsional)" />
-          </Section>
+          </EditSection>
 
           {/* Lampiran */}
-          <Section title="Lampiran">
+          <EditSection title="Lampiran">
             <p className="text-xs mb-3" style={{ color: 'var(--text-4)' }}>
               Maks. {LIMIT_UPLOAD} file · maks. 2 MB per file
             </p>
@@ -413,7 +365,7 @@ export default function EditModal({ pengajuan: p, onClose, onSuccess }: Props) {
                 </span>
               </button>
             )}
-          </Section>
+          </EditSection>
 
           {/* Actions */}
           <div className="flex gap-3 pt-1">

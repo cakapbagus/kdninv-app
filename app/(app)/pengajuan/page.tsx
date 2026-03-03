@@ -2,17 +2,18 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { generateSignature, formatCurrency, angkaTerbilang } from '@/lib/utils'
+import { generateSignature, formatCurrency, angkaTerbilang, compressImage } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { PengajuanItem, Rekening } from '@/types'
 import { format } from 'date-fns'
 import { Plus, Trash2, CheckCircle, Upload, X, Image as ImageIcon, FileText } from 'lucide-react'
 import Img from 'next/image'
 import { ACCENT, MAX_UPLOAD_SIZE, ALLOWED_MIME_TYPES, LIMIT_UPLOAD } from '@/lib/constants'
+import { Field } from '@/components/ui/Helpers'
 
 const emptyItem = (): PengajuanItem => ({ nama_barang: '', jumlah: 1, satuan: '', harga: 0, total: 0 })
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function PengajuanSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="glass rounded-2xl p-6">
       <h2 className="text-xs font-bold uppercase tracking-wider mb-5 pb-3"
@@ -20,59 +21,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         {title}
       </h2>
       {children}
-    </div>
-  )
-}
-
-function Field({
-  label,
-  type = 'text',
-  req = false,
-  placeholder = '',
-  value,
-  numberOnly = false,
-  alphaOnly = false,
-  onChange
-}: {
-  label: string
-  type?: string
-  req?: boolean
-  placeholder?: string
-  value: string
-  numberOnly?: boolean
-  alphaOnly?: boolean
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-}) {
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let newValue = e.target.value
-
-    if (numberOnly) {
-      newValue = newValue.replace(/[^0-9]/g, '')
-    }
-
-    if (alphaOnly) {
-      newValue = newValue.replace(/[^a-zA-Z\s]/g, '')
-    }
-
-    e.target.value = newValue
-    onChange(e)
-  }
-
-  return (
-    <div>
-      <label className="label-field">
-        {label} {req && <span style={{ color: '#ef4444' }}>*</span>}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={handleChange}
-        className="input-field"
-        placeholder={placeholder}
-        required={req}
-        inputMode={numberOnly ? "numeric" : undefined}
-      />
     </div>
   )
 }
@@ -139,52 +87,6 @@ export default function PengajuanPage() {
 
   const grandTotal = items.reduce((s, i) => s + (i.total || 0), 0)
   
-  const compressImage = (file: File, maxSize = MAX_UPLOAD_SIZE, defQuality = 0.9): Promise<File> => {
-    return new Promise((resolve) => {
-      // PDF skip
-      if (file.type === 'application/pdf') { resolve(file); return }
-
-      const img = new window.Image()
-      const url = URL.createObjectURL(file)
-
-      img.onload = () => {
-        URL.revokeObjectURL(url)
-
-        let { width, height } = img
-        const MAX_DIM = 1920
-
-        // Perkecil dimensi kalau terlalu besar
-        if (width > MAX_DIM || height > MAX_DIM) {
-          if (width > height) { height = Math.round(height * MAX_DIM / width); width = MAX_DIM }
-          else                { width = Math.round(width * MAX_DIM / height); height = MAX_DIM }
-        }
-
-        const canvas = document.createElement('canvas')
-        canvas.width  = width
-        canvas.height = height
-        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
-
-        // Coba quality 0.9 dulu, kalau masih > maxSizeMB turunkan terus
-        const tryCompress = (quality: number) => {
-          canvas.toBlob(blob => {
-            if (!blob) { resolve(file); return }
-
-            if (blob.size <= maxSize || quality <= 0.3) {
-              resolve(new File([blob], file.name.replace(/\.[^/.]+$/, '.webp'), { type: 'image/webp', lastModified: Date.now() }))
-            } else {
-              tryCompress(Math.round((quality - 0.1) * 10) / 10)
-            }
-          }, 'image/webp', quality)
-        }
-
-        tryCompress(defQuality)
-      }
-
-      img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
-      img.src = url
-    })
-  }
-
   const handleFileSelect = async (files: FileList) => {
     const remaining = LIMIT_UPLOAD - selectedFiles.length
     const toAdd = Array.from(files).slice(0, remaining)
@@ -341,7 +243,7 @@ export default function PengajuanPage() {
       <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-5">
         {/* Informasi Nota */}
         <div className="animate-fadeInUp stagger-1">
-          <Section title="Informasi Nota">
+          <PengajuanSection title="Informasi Nota">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
               <div>
                 <label className="label-field">No. Nota</label>
@@ -354,12 +256,12 @@ export default function PengajuanPage() {
               <Field label="Tanggal" type="date" req value={form.tanggal} onChange={e => setForm(p => ({ ...p, tanggal: e.target.value }))} />
               <Field label="Divisi" placeholder="Contoh: Keuangan" value={form.divisi} onChange={e => setForm(p => ({ ...p, divisi: e.target.value }))} />
             </div>
-          </Section>
+          </PengajuanSection>
         </div>
 
         {/* Informasi Transfer */}
         <div className="animate-fadeInUp stagger-2">
-          <Section title="Informasi Transfer">
+          <PengajuanSection title="Informasi Transfer">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-2 sm:space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider pb-2"
@@ -427,12 +329,12 @@ export default function PengajuanPage() {
                 )}
               </div>
             </div>
-          </Section>
+          </PengajuanSection>
         </div>
 
         {/* Detail Barang */}
         <div className="animate-fadeInUp stagger-3">
-          <Section title="Detail Barang">
+          <PengajuanSection title="Detail Barang">
             <div className="space-y-4">
               {items.map((item, idx) => (
                 <div key={idx} className="rounded-xl p-4 relative"
@@ -507,22 +409,22 @@ export default function PengajuanPage() {
                 </div>
               </div>
             )}
-          </Section>
+          </PengajuanSection>
         </div>
 
         {/* Catatan */}
         <div className="animate-fadeInUp stagger-4">
-          <Section title="Catatan">
+          <PengajuanSection title="Catatan">
             <textarea value={form.catatan}
               onChange={e => setForm(p => ({ ...p, catatan: e.target.value }))}
               className="input-field resize-none" rows={3}
               placeholder="Catatan tambahan (opsional)" />
-          </Section>
+          </PengajuanSection>
         </div>
 
         {/* Lampiran */}
         <div className="animate-fadeInUp stagger-4">
-          <Section title="Lampiran">
+          <PengajuanSection title="Lampiran">
             <p className="text-xs mb-3" style={{ color: 'var(--text-4)' }}>
               Upload foto/pdf (opsional, maks. {LIMIT_UPLOAD} file)
             </p>
@@ -584,7 +486,7 @@ export default function PengajuanPage() {
                 </span>
               </button>
             )}
-          </Section>
+          </PengajuanSection>
         </div>
 
         {/* Submit */}

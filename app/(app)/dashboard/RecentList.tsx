@@ -3,26 +3,12 @@
 import { useState } from 'react'
 import { FileText } from 'lucide-react'
 import Link from 'next/link'
-import { formatCurrency, getStatusLabel } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import type { Pengajuan } from '@/types'
 import DetailModal from '@/components/DetailModal'
 import { useRouter } from 'next/navigation'
 import { ACCENT } from '@/lib/constants'
-
-function StatusBadge({ status }: { status: string }) {
-  const cls = {
-    pending:  'badge-pending',
-    approved: 'badge-approved',
-    rejected: 'badge-rejected',
-    finished: 'badge-finished',
-  }[status] ?? 'badge-pending'
-
-  return (
-    <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${cls}`}>
-      {getStatusLabel(status)}
-    </span>
-  )
-}
+import { StatusBadge } from '@/components/ui/Helpers'
 
 interface Props {
   items: Pengajuan[]

@@ -10,7 +10,7 @@ import {
   FileText, LayoutDashboard, ScrollText, History,
   Shield, LogOut, Menu, X, ChevronRight,
   KeyRound, Eye, EyeOff, Settings,
-  Bell, BellOff, Fingerprint, Lock
+  Bell, BellOff, Fingerprint, KeySquare, Loader2,
 } from 'lucide-react'
 import { usePushNotification } from '@/hooks/usePushNotification'
 import { startRegistration } from '@simplewebauthn/browser'
@@ -49,6 +49,8 @@ function PwInput({ label, value, onChange, show, toggle }: {
   )
 }
 
+const LS_PASSKEY_KEY = 'kdninv_credential_ids'
+
 export default function Sidebar({ profile }: SidebarProps) {
   const pathname = usePathname()
   const router   = useRouter()
@@ -56,10 +58,10 @@ export default function Sidebar({ profile }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
-  // ── Push notification ────────────────────────────────────────────────────
+  // ── Push notification ─────────────────────────────────────────────────────
   const { supported, subscribed, permission, loading: notifLoading, subscribe, unsubscribe, cancelPermission } = usePushNotification()
 
-  // ── Change Password modal state ──────────────────────────────────────────
+  // ── Change Password modal state ───────────────────────────────────────────
   const [showPwModal,     setShowPwModal]     = useState(false)
   const [oldPassword,     setOldPassword]     = useState('')
   const [newPassword,     setNewPassword]     = useState('')
@@ -69,87 +71,30 @@ export default function Sidebar({ profile }: SidebarProps) {
   const [showConf, setShowConf] = useState(false)
   const [pwLoading, setPwLoading] = useState(false)
 
-  // ── Edit Full Name modal state ───────────────────────────────────────────
-  const [showNameModal,  setShowNameModal]  = useState(false)
-  const [newFullName,    setNewFullName]    = useState(profile.full_name ?? '')
-  const [nameLoading,    setNameLoading]    = useState(false)
-  const [localFullName,  setLocalFullName]  = useState(profile.full_name ?? '')
-  const [pendingNotif,   setPendingNotif]   = useState(false)
+  // ── Edit Full Name modal state ────────────────────────────────────────────
+  const [showNameModal, setShowNameModal] = useState(false)
+  const [newFullName,   setNewFullName]   = useState(profile.full_name ?? '')
+  const [nameLoading,   setNameLoading]   = useState(false)
+  const [localFullName, setLocalFullName] = useState(profile.full_name ?? '')
+  const [pendingNotif,  setPendingNotif]  = useState(false)
 
-  // ── WebAuthn fingerprint state ───────────────────────────────────────────
-  const [fpSupported,   setFpSupported]   = useState(false)
-  const [fpRegistered,  setFpRegistered]  = useState(false)
-  const [fpLoading,     setFpLoading]     = useState(false)
+  // ── WebAuthn / Passkey state ──────────────────────────────────────────────
+  const [passkeySupported, setPasskeySupported] = useState(false)
+  const [isMobile,         setIsMobile]         = useState(false)
+  const [passkeyLoading,   setPasskeyLoading]   = useState(false)
 
-  // ── WebAuthn init ───────────────────────────────────────────────────────
   useEffect(() => {
+    // Cek apakah device support platform authenticator
     if (typeof window === 'undefined' || !window.PublicKeyCredential) return
     window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-      .then(ok => {
-        setFpSupported(ok)
-        if (ok) {
-          try {
-            const saved = localStorage.getItem('kdninv_credential_ids')
-            const ids: string[] = saved ? JSON.parse(saved) : []
-            setFpRegistered(ids.length > 0)
-          } catch {
-            setFpRegistered(false)
-          }
-        }
-      })
+      .then(ok => setPasskeySupported(ok))
       .catch(() => {})
+
+    // Deteksi mobile via user agent (untuk label tombol)
+    setIsMobile(/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))
   }, [])
 
-  const handleFpToggle = async () => {
-    if (fpLoading) return
-    setFpLoading(true)
-    try {
-      if (fpRegistered) {
-        const res = await fetch('/api/webauthn/register', { method: 'DELETE' })
-        if (res.ok) {
-          localStorage.removeItem('kdninv_credential_ids')
-          setFpRegistered(false)
-          toast.success('Fingerprint/passkey dinonaktifkan')
-        } else {
-          toast.error('Gagal menonaktifkan fingerprint/passkey')
-        }
-      } else {
-        const optRes = await fetch('/api/webauthn/register')
-        if (!optRes.ok) { toast.error('Gagal memulai pendaftaran'); return }
-        const options = await optRes.json()
-        const credential = await startRegistration({ optionsJSON: options })
-        const verRes = await fetch('/api/webauthn/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(credential),
-        })
-        if (verRes.ok) {
-          const data = await verRes.json()
-          // Tambahkan credential ID baru ke localStorage
-          try {
-            const saved = localStorage.getItem('kdninv_credential_ids')
-            const existing: string[] = saved ? JSON.parse(saved) : []
-            if (data.credentialId && !existing.includes(data.credentialId)) {
-              existing.push(data.credentialId)
-            }
-            localStorage.setItem('kdninv_credential_ids', JSON.stringify(existing))
-          } catch { /* ignore */ }
-          setFpRegistered(true)
-          toast.success('Fingerprint/passkey berhasil diaktifkan!')
-        } else {
-          const e = await verRes.json()
-          toast.error(e.error ?? 'Pendaftaran gagal')
-        }
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'NotAllowedError') toast.error('Dibatalkan')
-      else toast.error('Terjadi kesalahan')
-    } finally {
-      setFpLoading(false)
-    }
-  }
-
-  // ── Helpers ──────────────────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────────
   const resetPwForm = () => {
     setOldPassword(''); setNewPassword(''); setConfirmPassword('')
     setShowOld(false); setShowNew(false); setShowConf(false)
@@ -157,7 +102,7 @@ export default function Sidebar({ profile }: SidebarProps) {
   const openPwModal  = () => { resetPwForm(); setShowPwModal(true); setMobileOpen(false) }
   const closePwModal = () => { resetPwForm(); setShowPwModal(false) }
 
-  const openNameModal  = () => {
+  const openNameModal = () => {
     setNewFullName(localFullName)
     setPendingNotif(subscribed)
     setShowNameModal(true); setMobileOpen(false)
@@ -171,15 +116,10 @@ export default function Sidebar({ profile }: SidebarProps) {
         const reg = await navigator.serviceWorker.getRegistration('/sw.js')
         if (reg) {
           const sub = await reg.pushManager.getSubscription()
-          if (sub) {
-            endpoint = sub.endpoint
-            await sub.unsubscribe()
-          }
+          if (sub) { endpoint = sub.endpoint; await sub.unsubscribe() }
         }
       }
-    } catch {
-      // Silent
-    }
+    } catch { /* silent */ }
 
     await fetch('/api/auth/logout', {
       method: 'POST',
@@ -223,7 +163,6 @@ export default function Sidebar({ profile }: SidebarProps) {
       const data: { error?: string; full_name?: string } = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Gagal')
       setLocalFullName(data.full_name ?? newFullName.trim())
-      // Terapkan perubahan notifikasi
       if (pendingNotif !== subscribed) {
         if (pendingNotif) await subscribe()
         else await unsubscribe()
@@ -235,10 +174,67 @@ export default function Sidebar({ profile }: SidebarProps) {
     } finally { setNameLoading(false) }
   }
 
-  const visibleNavItems = NAV_ITEMS.filter(i => i.roles.includes(profile.role))
+  // ── Daftarkan passkey baru ────────────────────────────────────────────────
+  const handleRegisterPasskey = async () => {
+    if (passkeyLoading) return
+    setPasskeyLoading(true)
+    setMobileOpen(false)
+    try {
+      // 1. Ambil registration options dari server
+      const optRes = await fetch('/api/webauthn/register')
+      if (!optRes.ok) {
+        const e = await optRes.json()
+        toast.error(e.error ?? 'Gagal memulai pendaftaran')
+        return
+      }
+      const options = await optRes.json()
 
-  // Bell icon — terang jika aktif, slate jika tidak
-  const bellColor = subscribed ? ACCENT : '#94a3b8' // slate-400
+      // 2. Panggil browser — fingerprint/face/passkey prompt muncul di sini
+      const credential = await startRegistration({ optionsJSON: options })
+
+      // 3. Kirim ke server untuk disimpan
+      const verRes = await fetch('/api/webauthn/register', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(credential),
+      })
+      const verData = await verRes.json()
+
+      if (!verRes.ok) {
+        toast.error(verData.error ?? 'Pendaftaran gagal')
+        return
+      }
+
+      // 4. Simpan credentialId ke localStorage agar login page bisa deteksi
+      try {
+        const saved   = localStorage.getItem(LS_PASSKEY_KEY)
+        const existing: string[] = saved ? JSON.parse(saved) : []
+        if (verData.credentialId && !existing.includes(verData.credentialId)) {
+          existing.push(verData.credentialId)
+          localStorage.setItem(LS_PASSKEY_KEY, JSON.stringify(existing))
+        }
+      } catch { /* private mode */ }
+
+      toast.success(isMobile ? 'Fingerprint berhasil didaftarkan!' : 'Passkey berhasil didaftarkan!')
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'NotAllowedError') {
+        toast.error('Dibatalkan')
+      } else if (err instanceof Error && err.message.includes('already')) {
+        toast.error('Passkey ini sudah terdaftar')
+      } else {
+        toast.error('Pendaftaran gagal')
+      }
+    } finally {
+      setPasskeyLoading(false)
+    }
+  }
+
+  const visibleNavItems = NAV_ITEMS.filter(i => i.roles.includes(profile.role))
+  const bellColor = subscribed ? ACCENT : '#94a3b8'
+
+  // Label & icon tombol passkey sesuai device
+  const passkeyLabel = isMobile ? 'Daftarkan Fingerprint' : 'Daftarkan Passkey'
+  const PasskeyIcon  = isMobile ? Fingerprint : KeySquare
 
   function SidebarContent() {
     return (
@@ -271,14 +267,11 @@ export default function Sidebar({ profile }: SidebarProps) {
           <span className={`inline-block mt-1 text-xs px-1.5 py-0.5 rounded border font-semibold ${ROLE_PILL[profile.role] ?? ''}`}>
             {profile.role}
           </span>
-
+          
           {/* Bell icon pojok kiri bawah */}
           {supported && (
             <div className="absolute bottom-2 right-8 w-5 h-5 rounded-full flex items-center justify-center"
-              style={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border-soft)',
-              }}>
+              style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)' }}>
               {notifLoading
                 ? <span className="w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin" style={{ color: bellColor }} />
                 : subscribed
@@ -289,26 +282,25 @@ export default function Sidebar({ profile }: SidebarProps) {
           )}
 
           {/* Settings icon kanan bawah */}
-          <div className="absolute bottom-2 right-2 w-5 h-5 rounded-full flex items-center justify-center transition-opacity"
+          <div className="absolute bottom-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
             style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)' }}>
             <Settings className="w-3 h-3" style={{ color: '#8B4513' }} />
           </div>
-
         </button>
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-1">
           {visibleNavItems.map(item => {
-            const Icon = item.icon
+            const Icon   = item.icon
             const active = pathname === item.href
             return (
               <Link key={item.href} href={item.href}
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
                 style={{
-                  color: active ? ACCENT : 'var(--text-2)',
+                  color:      active ? ACCENT : 'var(--text-2)',
                   background: active ? 'var(--accent-soft)' : 'transparent',
-                  marginTop: isAdminRoute(item.href) ? '24px' : undefined
+                  marginTop:  isAdminRoute(item.href) ? '24px' : undefined,
                 }}>
                 <Icon className="w-4 h-4 shrink-0" />
                 <span className="flex-1">{item.label}</span>
@@ -320,36 +312,28 @@ export default function Sidebar({ profile }: SidebarProps) {
 
         {/* Bottom */}
         <div className="px-3 py-3 space-y-1" style={{ borderTop: '1px solid var(--border-soft)' }}>
+
+          {/* Daftarkan Fingerprint (mobile) / Daftarkan Passkey (desktop) */}
+          {passkeySupported && (
+            <button
+              onClick={handleRegisterPasskey}
+              disabled={passkeyLoading}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all disabled:opacity-50 border-2 border-dashed"
+              style={{ color: '#6D8196' }}>
+              {passkeyLoading
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <PasskeyIcon className="w-4 h-4" />
+              }
+              {passkeyLoading ? 'Mendaftarkan...' : passkeyLabel}
+            </button>
+          )}
+
           <button onClick={openPwModal}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
             style={{ color: 'var(--text-3)' }}>
             <KeyRound className="w-4 h-4" />
             Ganti Password
           </button>
-          {fpSupported && (
-            <button onClick={handleFpToggle} disabled={fpLoading}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
-              style={{ color: fpRegistered ? ACCENT : 'var(--text-3)' }}>
-              {fpLoading
-                ? <span className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--border)', borderTopColor: ACCENT }} />
-                : <>
-                    <Fingerprint className="min-[821px]:hidden w-4 h-4" />
-                    <Lock className="hidden min-[821px]:inline w-4 h-4" />
-                  </>
-              }
-              {fpRegistered ? (
-                <>
-                  <span className="min-[821px]:hidden">Fingerprint Aktif</span>
-                  <span className="hidden min-[821px]:inline">Passkey Aktif</span>
-                </>
-              ) : (
-                <>
-                  <span className="min-[821px]:hidden">Aktifkan Fingerprint</span>
-                  <span className="hidden min-[821px]:inline">Aktifkan Passkey</span>
-                </>
-              )}
-            </button>
-          )}
           <button onClick={() => { setShowLogoutConfirm(true); setMobileOpen(false) }}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
             style={{ color: '#ef4444' }}>
@@ -425,17 +409,13 @@ export default function Sidebar({ profile }: SidebarProps) {
               {supported && (
                 <div>
                   <label className="label-field">Push Notifikasi</label>
-                  <button
-                    type="button"
-                    disabled={permission === 'denied'}
-                    onClick={() => setPendingNotif(v => !v)}
+                  <button type="button" disabled={permission === 'denied'} onClick={() => setPendingNotif(v => !v)}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all disabled:opacity-40"
                     style={{
                       background: pendingNotif ? 'var(--accent-soft)' : 'var(--surface-soft)',
-                      border: `1px solid ${pendingNotif ? 'rgba(79,110,247,0.25)' : 'var(--border-soft)'}`,
-                      color: pendingNotif ? ACCENT : '#64748b',
-                    }}
-                  >
+                      border:     `1px solid ${pendingNotif ? 'rgba(79,110,247,0.25)' : 'var(--border-soft)'}`,
+                      color:      pendingNotif ? ACCENT : '#64748b',
+                    }}>
                     {notifLoading
                       ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
                       : pendingNotif
@@ -443,13 +423,9 @@ export default function Sidebar({ profile }: SidebarProps) {
                         : <BellOff className="w-4 h-4 shrink-0" style={{ color: '#94a3b8' }} />
                     }
                     <span className="flex-1 text-left">
-                      {notifLoading
-                        ? 'Memproses...'
-                        : permission === 'denied'
-                          ? 'Notifikasi diblokir browser'
-                          : pendingNotif
-                            ? 'Notifikasi aktif'
-                            : 'Notifikasi tidak aktif'}
+                      {notifLoading ? 'Memproses...'
+                        : permission === 'denied' ? 'Notifikasi diblokir browser'
+                        : pendingNotif ? 'Notifikasi aktif' : 'Notifikasi tidak aktif'}
                     </span>
                     {/* Toggle pill */}
                     {permission !== 'denied' && !notifLoading && (
@@ -488,7 +464,7 @@ export default function Sidebar({ profile }: SidebarProps) {
         </div>
       )}
 
-      {/* ── Modal: Ganti Password ───────────────────────────────────────────── */}
+      {/* ── Modal: Ganti Password ─────────────────────────────────────────────── */}
       {showPwModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
@@ -521,7 +497,8 @@ export default function Sidebar({ profile }: SidebarProps) {
           </div>
         </div>
       )}
-      {/* ── Modal: Konfirmasi Keluar ─────────────────────────────────────────── */}
+
+      {/* ── Modal: Konfirmasi Keluar ──────────────────────────────────────────── */}
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
@@ -533,9 +510,7 @@ export default function Sidebar({ profile }: SidebarProps) {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-sm mb-5" style={{ color: 'var(--text-3)' }}>
-              Yakin ingin keluar dari sistem?
-            </p>
+            <p className="text-sm mb-5" style={{ color: 'var(--text-3)' }}>Yakin ingin keluar dari sistem?</p>
             <div className="flex gap-3">
               <button onClick={() => setShowLogoutConfirm(false)}
                 className="flex-1 py-2.5 rounded-xl text-sm font-medium"

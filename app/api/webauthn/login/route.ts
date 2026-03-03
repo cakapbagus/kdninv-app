@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server'
-import { signToken, cookieName } from '@/lib/auth'
+import { signToken, cookieName, SESSION_REMEMBER, SESSION_DEFAULT } from '@/lib/auth'
 import { sql } from '@/lib/db'
 
 const RP_ID  = process.env.WEBAUTHN_RP_ID  ?? 'localhost'
@@ -9,7 +9,7 @@ const ORIGIN = process.env.WEBAUTHN_ORIGIN ?? 'http://localhost:3000'
 export async function POST(req: NextRequest) {
   const step = req.nextUrl.searchParams.get('step')
 
-  // ── STEP 1: start ──────────────────────────────────────────────────────────
+  // ── STEP 1: start — browser minta challenge ────────────────────────────────
   if (step === 'start') {
     const { username } = await req.json()
     if (!username) return NextResponse.json({ error: 'Username wajib diisi' }, { status: 400 })
@@ -22,11 +22,10 @@ export async function POST(req: NextRequest) {
     const user = users[0]
 
     const creds = await sql`
-      SELECT credential_id, transports FROM webauthn_credentials WHERE user_id = ${user.id}
+      SELECT credential_id, transports FROM webauthn_credentials
+      WHERE user_id = ${user.id}
     `
-    if (!creds.length) {
-      return NextResponse.json({ error: 'no_credential' }, { status: 404 })
-    }
+    if (!creds.length) return NextResponse.json({ error: 'no_credential' }, { status: 404 })
 
     const options = await generateAuthenticationOptions({
       rpID:             RP_ID,
@@ -49,9 +48,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ...options, userId: user.id })
   }
 
-  // ── STEP 2: finish ─────────────────────────────────────────────────────────
+  // ── STEP 2: finish — verifikasi & buat session ─────────────────────────────
   if (step === 'finish') {
-    const { userId, response } = await req.json()
+    const { userId, response, rememberMe } = await req.json()
     if (!userId) return NextResponse.json({ error: 'userId missing' }, { status: 400 })
 
     const challenges = await sql`
@@ -66,7 +65,9 @@ export async function POST(req: NextRequest) {
     `
     if (!credRows.length) return NextResponse.json({ error: 'Credential tidak ditemukan' }, { status: 404 })
 
-    const userRows = await sql`SELECT id, username, role FROM users WHERE id = ${userId} LIMIT 1`
+    const userRows = await sql`
+      SELECT id, username, role FROM users WHERE id = ${userId} LIMIT 1
+    `
     if (!userRows.length) return NextResponse.json({ error: 'User tidak ditemukan' }, { status: 404 })
 
     const cred = credRows[0]
@@ -75,9 +76,9 @@ export async function POST(req: NextRequest) {
     try {
       const verification = await verifyAuthenticationResponse({
         response,
-        expectedChallenge: challenges[0].challenge as string,
-        expectedOrigin:    ORIGIN,
-        expectedRPID:      RP_ID,
+        expectedChallenge:       challenges[0].challenge as string,
+        expectedOrigin:          ORIGIN,
+        expectedRPID:            RP_ID,
         credential: {
           id:        cred.credential_id as string,
           publicKey: Buffer.from(cred.public_key as string, 'base64'),
@@ -86,8 +87,11 @@ export async function POST(req: NextRequest) {
         requireUserVerification: true,
       })
 
-      if (!verification.verified) return NextResponse.json({ error: 'Verifikasi gagal' }, { status: 401 })
+      if (!verification.verified) {
+        return NextResponse.json({ error: 'Verifikasi gagal' }, { status: 401 })
+      }
 
+      // Update counter
       await sql`
         UPDATE webauthn_credentials
         SET counter = ${verification.authenticationInfo.newCounter}
@@ -95,28 +99,30 @@ export async function POST(req: NextRequest) {
       `
       await sql`DELETE FROM webauthn_challenges WHERE user_id = ${userId}`
 
-      const token = await signToken({
-        sub:      String(user.id),
-        username: user.username as string,
-        role:     user.role as 'user' | 'admin' | 'manager',
-      })
-
-      // Ambil semua credential IDs milik user untuk disimpan di localStorage client
+      // Ambil semua credentialIds milik user untuk disimpan di localStorage client
       const allCreds = await sql`
         SELECT credential_id FROM webauthn_credentials WHERE user_id = ${userId}
       `
 
+      const maxAge    = rememberMe ? SESSION_REMEMBER : SESSION_DEFAULT
+      const expiresIn = rememberMe ? '30d' : '8h'
+
+      const token = await signToken(
+        { sub: String(user.id), username: user.username as string, role: user.role as 'user' | 'admin' | 'manager' },
+        expiresIn
+      )
+
       const res = NextResponse.json({
         success:       true,
         role:          user.role,
-        username:      user.username,
+        username:      user.username as string,
         credentialIds: (allCreds as { credential_id: string }[]).map(r => r.credential_id),
       })
       res.cookies.set(cookieName(), token, {
         httpOnly: true,
         secure:   process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge:   60 * 60 * 24 * 7,
+        maxAge,
         path:     '/',
       })
       return res

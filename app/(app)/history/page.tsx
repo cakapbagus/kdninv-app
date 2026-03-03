@@ -1,17 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { formatCurrency, formatDateTime, getStatusLabel } from '@/lib/utils'
+import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { Pengajuan } from '@/types'
 import { FileText, RefreshCw, Pencil } from 'lucide-react'
 import DetailModal from '@/components/DetailModal'
 import { ACCENT } from '@/lib/constants'
 import EditModal from '@/components/EditModal'
-
-function StatusBadge({ status }: { status: string }) {
-  const cls = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected', finished: 'badge-finished' }[status] || 'badge-pending'
-  return <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${cls}`}>{getStatusLabel(status)}</span>
-}
+import { StatusBadge } from '@/components/ui/Helpers'
 
 export default function HistoryPage() {
   const [pengajuan, setPengajuan] = useState<Pengajuan[]>([])

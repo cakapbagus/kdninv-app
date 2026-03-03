@@ -7,20 +7,15 @@ export async function POST(req: NextRequest) {
     const session = await getSession()
     if (session) {
       let endpoint: string | null = null
-      try {
-        const body = await req.json()
-        endpoint = body?.endpoint ?? null
-      } catch { /* body kosong atau bukan JSON */ }
-
+      const body = await req.json()
+      endpoint = body?.endpoint ?? null
+        
       if (endpoint) {
         // Hapus hanya endpoint browser ini saja
         await sql`
           DELETE FROM push_subscriptions
           WHERE user_id = ${session.sub} AND endpoint = ${endpoint}
         `
-      } else {
-        // Fallback: tidak ada endpoint dikirim, hapus semua milik user
-        await sql`DELETE FROM push_subscriptions WHERE user_id = ${session.sub}`
       }
     }
   } catch {
