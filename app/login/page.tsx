@@ -18,7 +18,7 @@ declare global {
         'expired-callback'?: () => void
         'error-callback'?:   () => void
         theme?: 'light' | 'dark' | 'auto'
-        size?:  'normal' | 'compact'
+        size?:  'normal' | 'compact' | 'invisible'
       }) => string
       reset:  (id?: string) => void
       remove: (id?: string) => void
@@ -77,13 +77,15 @@ export default function LoginPage() {
     const id = window.turnstile.render(tsContainerRef.current, {
       sitekey:            TURNSTILE_SITE_KEY,
       theme:              'light',
-      size:               'normal',
+      // Mobile: 'invisible' — tidak tampil kecuali Cloudflare butuh challenge
+      // Desktop: 'normal'
+      size:               isMobile ? 'invisible' : 'normal',
       callback:           (token) => setTsToken(token),
       'expired-callback': () => setTsToken(''),
       'error-callback':   () => setTsToken(''),
     })
     setTsWidgetId(id)
-  }, []) // eslint-disable-line
+  }, [isMobile]) // eslint-disable-line
 
   useEffect(() => { if (tsReady) renderTurnstile() }, [tsReady, renderTurnstile])
 
@@ -288,9 +290,10 @@ export default function LoginPage() {
 
               {/* Turnstile CAPTCHA */}
               {TURNSTILE_SITE_KEY && (
-                <div className="flex justify-center">
+                // <div className="flex justify-center">
+                <div className={isMobile ? 'hidden' : 'flex justify-center'}>
                   <div ref={tsContainerRef} />
-                  {!tsReady && (
+                  {!tsReady && !isMobile && (
                     <div className="flex items-center gap-2 text-xs py-2" style={{ color: 'var(--text-4)' }}>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" /> Memuat verifikasi...
                     </div>
