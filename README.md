@@ -13,7 +13,7 @@ Aplikasi web manajemen pengajuan nota (bukti kas/bank keluar) berbasis Next.js 1
 | Database   | **Neon PostgreSQL** (serverless)           |
 | Auth       | **Custom JWT** (jose + bcryptjs)           |
 | Auth       | **WebAuthn** (fingerprint + TWA ready)     |
-| Security   | **Cloudflare Turnstile** (bot protection)  |
+| Security   | **Google reCAPTCHA v3** (bot protection)  |
 | Storage    | **Cloudinary**                             |
 | Styling    | **Tailwind CSS v3 + CSS variables**        |
 | Push Notif | **Web Push API + VAPID** (web-push)        |
@@ -109,8 +109,8 @@ CLOUDINARY_API_SECRET=your_api_secret
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_vapid_public_key
 VAPID_PRIVATE_KEY=your_vapid_private_key
 VAPID_EMAIL=mailto:admin@example.com
-NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAAA...
-TURNSTILE_SECRET_KEY=0x4AAAAAAA...
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=6L...
+RECAPTCHA_SECRET_KEY=6L...
 WEBAUTHN_RP_ID=localhost
 WEBAUTHN_ORIGIN=your-website.vercel.app
 WEBAUTHN_RP_NAME=web-title

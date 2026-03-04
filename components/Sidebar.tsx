@@ -10,7 +10,7 @@ import {
   FileText, LayoutDashboard, ScrollText, History,
   Shield, LogOut, Menu, X, ChevronRight,
   KeyRound, Eye, EyeOff, Settings,
-  Bell, BellOff, Fingerprint, KeySquare, Loader2,
+  Bell, BellOff, KeySquare, Loader2,
 } from 'lucide-react'
 import { usePushNotification } from '@/hooks/usePushNotification'
 import { startRegistration } from '@simplewebauthn/browser'
@@ -80,7 +80,6 @@ export default function Sidebar({ profile }: SidebarProps) {
 
   // ── WebAuthn / Passkey state ──────────────────────────────────────────────
   const [passkeySupported, setPasskeySupported] = useState(false)
-  const [isMobile,         setIsMobile]         = useState(false)
   const [passkeyLoading,   setPasskeyLoading]   = useState(false)
 
   useEffect(() => {
@@ -89,9 +88,6 @@ export default function Sidebar({ profile }: SidebarProps) {
     window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
       .then(ok => setPasskeySupported(ok))
       .catch(() => {})
-
-    // Deteksi mobile via user agent (untuk label tombol)
-    setIsMobile(/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))
   }, [])
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -189,7 +185,7 @@ export default function Sidebar({ profile }: SidebarProps) {
       }
       const options = await optRes.json()
 
-      // 2. Panggil browser — fingerprint/face/passkey prompt muncul di sini
+      // 2. Panggil browser — passkey prompt muncul di sini
       const credential = await startRegistration({ optionsJSON: options })
 
       // 3. Kirim ke server untuk disimpan
@@ -215,7 +211,7 @@ export default function Sidebar({ profile }: SidebarProps) {
         }
       } catch { /* private mode */ }
 
-      toast.success(isMobile ? 'Fingerprint berhasil didaftarkan!' : 'Passkey berhasil didaftarkan!')
+      toast.success('Passkey berhasil didaftarkan!')
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'NotAllowedError') {
         toast.error('Dibatalkan')
@@ -231,10 +227,6 @@ export default function Sidebar({ profile }: SidebarProps) {
 
   const visibleNavItems = NAV_ITEMS.filter(i => i.roles.includes(profile.role))
   const bellColor = subscribed ? ACCENT : '#94a3b8'
-
-  // Label & icon tombol passkey sesuai device
-  const passkeyLabel = isMobile ? 'Daftarkan Fingerprint' : 'Daftarkan Passkey'
-  const PasskeyIcon  = isMobile ? Fingerprint : KeySquare
 
   function SidebarContent() {
     return (
@@ -322,9 +314,9 @@ export default function Sidebar({ profile }: SidebarProps) {
               style={{ color: '#6D8196' }}>
               {passkeyLoading
                 ? <Loader2 className="w-4 h-4 animate-spin" />
-                : <PasskeyIcon className="w-4 h-4" />
+                : <KeySquare className="w-4 h-4" />
               }
-              {passkeyLoading ? 'Mendaftarkan...' : passkeyLabel}
+              {passkeyLoading ? 'Mendaftarkan...' : 'Daftarkan Passkey'}
             </button>
           )}
 

@@ -1,32 +1,24 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { Eye, EyeOff, FileText, Loader2, Fingerprint, KeyRound } from 'lucide-react'
+import { Eye, EyeOff, FileText, Loader2, KeyRound } from 'lucide-react'
 import { ACCENT } from '@/lib/constants'
 import InstallPWA from '@/components/InstallPWA'
-import Script from 'next/script'
 import { startAuthentication } from '@simplewebauthn/browser'
+import Script from 'next/script'
 
 declare global {
   interface Window {
-    turnstile?: {
-      render: (el: HTMLElement, opts: {
-        sitekey: string
-        callback: (token: string) => void
-        'expired-callback'?: () => void
-        'error-callback'?:   () => void
-        theme?: 'light' | 'dark' | 'auto'
-        size?:  'normal' | 'compact'
-      }) => string
-      reset:  (id?: string) => void
-      remove: (id?: string) => void
+    grecaptcha: {
+      ready: (cb: () => void) => void
+      execute: (siteKey: string, opts: { action: string }) => Promise<string>
     }
   }
 }
 
-const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? ''
+const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''
 const LS_USERNAME_KEY    = 'kdninv_last_username'
 const LS_REMEMBER_KEY    = 'kdninv_remember_me'
 const LS_PASSKEY_KEY     = 'kdninv_credential_ids'
@@ -40,11 +32,7 @@ export default function LoginPage() {
   const [passkeyLoading,   setPasskeyLoading]   = useState(false)
   const [passkeySupported, setPasskeySupported] = useState(false)
   const [hasPasskey,       setHasPasskey]       = useState(false)
-  const [isMobile,         setIsMobile]         = useState(false)
-  const [tsToken,          setTsToken]          = useState('')
-  const [tsReady,          setTsReady]          = useState(false)
-  const [tsWidgetId,       setTsWidgetId]       = useState('')
-  const tsContainerRef = useRef<HTMLDivElement>(null)
+  const [recaptchaReady, setRecaptchaReady] = useState(false)
   const router = useRouter()
 
   // ── Restore last username + remember me preference ─────────────────────
@@ -59,38 +47,12 @@ export default function LoginPage() {
       setHasPasskey(ids.length > 0)
     } catch { /* private mode */ }
 
-    setIsMobile(/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))
-
     if (window.PublicKeyCredential) {
       window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
         .then(ok => setPasskeySupported(ok))
         .catch(() => {})
     }
   }, [])
-
-  // ── Render Turnstile ────────────────────────────────────────────────────
-  const renderTurnstile = useCallback(() => {
-    if (!window.turnstile || !tsContainerRef.current || !TURNSTILE_SITE_KEY) return
-    if (tsWidgetId) {
-      try { window.turnstile.remove(tsWidgetId) } catch { /* ignore */ }
-    }
-    const id = window.turnstile.render(tsContainerRef.current, {
-      sitekey:            TURNSTILE_SITE_KEY,
-      theme:              'light',
-      size:               'normal',
-      callback:           (token) => setTsToken(token),
-      'expired-callback': () => setTsToken(''),
-      'error-callback':   () => setTsToken(''),
-    })
-    setTsWidgetId(id)
-  }, []) // eslint-disable-line
-
-  useEffect(() => { if (tsReady) renderTurnstile() }, [tsReady, renderTurnstile])
-
-  const resetTurnstile = () => {
-    setTsToken('')
-    try { window.turnstile?.reset(tsWidgetId) } catch { /* ignore */ }
-  }
 
   // ── Push subscribe ──────────────────────────────────────────────────────
   const autoSubscribe = async () => {
@@ -139,15 +101,32 @@ export default function LoginPage() {
     router.refresh()
   }
 
+  const executeRecaptcha = (action: string): Promise<string> => {
+    return new Promise((resolve) => {
+      if (!recaptchaReady || !window.grecaptcha || !RECAPTCHA_SITE_KEY) {
+        resolve('')
+        return
+      }
+      window.grecaptcha.ready(() => {
+        window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action })
+          .then(resolve)
+          .catch(() => resolve(''))  // resolve kosong jika error, jangan block login
+      })
+    })
+  }
+
   // ── Login biasa ─────────────────────────────────────────────────────────
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (TURNSTILE_SITE_KEY && !tsToken) {
-      toast.error('Selesaikan verifikasi CAPTCHA terlebih dahulu')
-      return
-    }
     setLoading(true)
     try {
+      // Execute reCAPTCHA di background — tidak ada prompt ke user
+      const recaptchaToken = await executeRecaptcha('login')
+
+      // Check recaptcha (debug)
+      // console.log('recaptchaReady:', recaptchaReady)  // ← tambah ini
+      // console.log('recaptchaToken:', recaptchaToken ? recaptchaToken.slice(0, 30) + '...' : 'EMPTY')  // ← dan ini
+
       const res = await fetch('/api/auth/login', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -155,7 +134,7 @@ export default function LoginPage() {
           username:       username.trim().toLowerCase(),
           password,
           rememberMe,
-          turnstileToken: tsToken,
+          recaptchaToken,
         }),
       })
       const data: { error?: string; credentialIds?: string[] } = await res.json()
@@ -163,11 +142,10 @@ export default function LoginPage() {
       afterLogin(username.trim().toLowerCase(), data.credentialIds ?? [])
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Login gagal')
-      resetTurnstile()
     } finally { setLoading(false) }
   }
 
-  // ── Login passkey / fingerprint ────────────────────────────────────────
+  // ── Login passkey ────────────────────────────────────────
   const handlePasskeyLogin = async () => {
     const uname = username.trim().toLowerCase()
     if (!uname) { toast.error('Masukkan username terlebih dahulu'); return }
@@ -188,12 +166,12 @@ export default function LoginPage() {
       }
       const { userId, ...options } = startData
       const credential = await startAuthentication({ optionsJSON: options })
-      setRememberMe(true) // otomatis diaktifkan karena autentikasi passkey/fingerprint
       const finishRes = await fetch('/api/webauthn/login?step=finish', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ userId, response: credential, rememberMe }),
+        body:    JSON.stringify({ userId, response: credential, rememberMe: true }),
       })
+      setRememberMe(true) // otomatis diaktifkan karena autentikasi passkey
       const finishData: { error?: string; username?: string; credentialIds?: string[] } = await finishRes.json()
       if (!finishRes.ok) throw new Error(finishData.error ?? 'Autentikasi gagal')
       afterLogin(uname, finishData.credentialIds ?? [])
@@ -207,14 +185,15 @@ export default function LoginPage() {
 
   const showPasskeyBtn = passkeySupported && hasPasskey
   const busy           = loading || passkeyLoading
-  const PasskeyIcon    = isMobile ? Fingerprint : KeyRound
-  const passkeyTitle   = isMobile ? 'Masuk dengan Fingerprint' : 'Masuk dengan Passkey'
 
   return (
     <>
-      {TURNSTILE_SITE_KEY && (
-        <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-          strategy="afterInteractive" onReady={() => setTsReady(true)} />
+      {RECAPTCHA_SITE_KEY && (
+        <Script
+          src={`https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`}
+          strategy="afterInteractive"
+          onLoad={() => setRecaptchaReady(true)}
+        />
       )}
 
       <div className="min-h-screen flex items-center justify-center p-6"
@@ -286,22 +265,10 @@ export default function LoginPage() {
                 <span className="text-xs font-medium" style={{ color: 'var(--text-3)' }}>Ingat saya</span>
               </label>
 
-              {/* Turnstile CAPTCHA */}
-              {TURNSTILE_SITE_KEY && (
-                <div className="flex justify-center">
-                  <div ref={tsContainerRef} />
-                  {!tsReady && (
-                    <div className="flex items-center gap-2 text-xs py-2" style={{ color: 'var(--text-4)' }}>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Memuat verifikasi...
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Tombol */}
               <div className="flex gap-2">
                 <button type="submit"
-                  disabled={busy || (!!TURNSTILE_SITE_KEY && !tsToken)}
+                  disabled={busy}
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold !text-white transition-all disabled:opacity-60"
                   style={{ background: ACCENT, fontFamily: "'Poppins',sans-serif" }}>
                   {loading ? (
@@ -314,12 +281,12 @@ export default function LoginPage() {
 
                 {showPasskeyBtn && (
                   <button type="button" onClick={handlePasskeyLogin} disabled={busy}
-                    title={passkeyTitle}
+                    title={'Masuk dengan Passkey'}
                     className="flex items-center justify-center w-12 rounded-xl transition-all disabled:opacity-60"
                     style={{ border: `1.5px solid ${ACCENT}`, color: ACCENT, background: 'var(--accent-soft)' }}>
                     {passkeyLoading
                       ? <Loader2 className="w-5 h-5 animate-spin" />
-                      : <PasskeyIcon className="w-5 h-5" />
+                      : <KeyRound className="w-5 h-5" />
                     }
                   </button>
                 )}
@@ -329,10 +296,18 @@ export default function LoginPage() {
             {showPasskeyBtn && (
               <p className="text-xs text-center mt-3 flex items-center justify-center gap-1" style={{ color: 'var(--text-4)' }}>
                 Ketuk
-                <PasskeyIcon className="w-3 h-3" />
-                {isMobile ? ' untuk login dengan fingerprint' : ' untuk login dengan passkey'}
+                <KeyRound className="w-3 h-3" />
+                untuk login dengan passkey
               </p>
             )}
+
+            {/* Recaptcha */}
+            <p className="text-xs text-center mt-2" style={{ color: 'var(--text-4)' }}>
+              Protected by reCAPTCHA —{' '}
+              <a href="https://policies.google.com/privacy" target="_blank" style={{ color: ACCENT }}>Privacy</a>
+              {' & '}
+              <a href="https://policies.google.com/terms" target="_blank" style={{ color: ACCENT }}>Terms</a>
+            </p>
 
             <div className="mt-5 pt-4" style={{ borderTop: '1px solid var(--border-soft)' }}>
               <p className="text-xs text-center" style={{ color: 'var(--text-4)' }}>

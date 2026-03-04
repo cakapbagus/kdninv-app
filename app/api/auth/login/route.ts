@@ -3,18 +3,20 @@ import { sql } from '@/lib/db'
 import { signToken, cookieName, SESSION_REMEMBER, SESSION_DEFAULT } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 
-const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET_KEY ?? ''
+const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET_KEY ?? ''
+const RECAPTCHA_MIN_SCORE = 0.5  // 0.0 (bot) sampai 1.0 (manusia), sesuaikan jika perlu
 
-async function verifyTurnstile(token: string, ip: string): Promise<boolean> {
-  if (!TURNSTILE_SECRET) return true
+async function verifyRecaptcha(token: string): Promise<boolean> {
+  if (!RECAPTCHA_SECRET) return true  // skip jika tidak dikonfigurasi
   try {
-    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    const res = await fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret: TURNSTILE_SECRET, response: token, remoteip: ip }),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    `secret=${RECAPTCHA_SECRET}&response=${token}`,
     })
     const data = await res.json()
-    return data.success === true
+
+    return data.success === true && data.score >= RECAPTCHA_MIN_SCORE
   } catch {
     return false
   }
@@ -22,23 +24,20 @@ async function verifyTurnstile(token: string, ip: string): Promise<boolean> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { username, password, rememberMe, turnstileToken } = await req.json()
+    const { username, password, rememberMe, recaptchaToken } = await req.json()
 
     if (!username || !password) {
       return NextResponse.json({ error: 'Username dan password wajib diisi' }, { status: 400 })
     }
 
-    // ── Verifikasi Turnstile ─────────────────────────────────────────────
-    if (TURNSTILE_SECRET) {
-      if (!turnstileToken) {
-        return NextResponse.json({ error: 'Verifikasi CAPTCHA diperlukan' }, { status: 400 })
+    // ── Verifikasi Recaptcha ─────────────────────────────────────────────
+    if (RECAPTCHA_SECRET) {
+      if (!recaptchaToken) {
+        return NextResponse.json({ error: 'Verifikasi gagal' }, { status: 400 })
       }
-      const ip = req.headers.get('cf-connecting-ip')
-        ?? req.headers.get('x-forwarded-for')?.split(',')[0].trim()
-        ?? '0.0.0.0'
-      const valid = await verifyTurnstile(turnstileToken, ip)
+      const valid = await verifyRecaptcha(recaptchaToken)
       if (!valid) {
-        return NextResponse.json({ error: 'Verifikasi CAPTCHA gagal, coba lagi' }, { status: 400 })
+        return NextResponse.json({ error: 'Terdeteksi aktivitas mencurigakan, coba lagi' }, { status: 400 })
       }
     }
 
