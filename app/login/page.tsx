@@ -57,8 +57,11 @@ export default function LoginPage() {
   // ── Push subscribe ──────────────────────────────────────────────────────
   const autoSubscribe = async () => {
     try {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return
+      if (!('serviceWorker' in navigator)) return
+      if (!('PushManager' in window)) return
+      if (typeof Notification === 'undefined') return // Crash: no PWA for iOS/iPad
       if (Notification.permission === 'denied') return
+
       const VAPID = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''
       if (!VAPID) return
       let permission: string = Notification.permission

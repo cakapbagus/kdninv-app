@@ -27,14 +27,14 @@ export function usePushNotification() {
     if (typeof window === 'undefined') return
     const ok = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
     setSupported(ok)
-    if (ok) setPermission(Notification.permission)
+    if (ok) setPermission(typeof Notification !== 'undefined' ? Notification.permission : 'default')
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {})
     }
 
     // Cek langsung saat mount
-    if (Notification.permission === 'granted') {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       fetch('/api/push')
         .then(r => r.json())
         .then(d => { if (d.subscribed) setSubscribed(true) })
@@ -43,7 +43,7 @@ export function usePushNotification() {
 
     // Re-check setelah 5 detik untuk menangkap autoSubscribe yang baru selesai
     const timer = setTimeout(() => {
-      if (Notification.permission !== 'granted') return
+      if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') return
       fetch('/api/push')
         .then(r => r.json())
         .then(d => { if (d.subscribed) setSubscribed(true) })
@@ -55,6 +55,7 @@ export function usePushNotification() {
 
   const subscribe = async () => {
     if (!supported || !VAPID_PUBLIC) return
+    if (typeof Notification === 'undefined') return
     setLoading(true)
     try {
       let perm = Notification.permission
